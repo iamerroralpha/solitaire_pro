@@ -9,12 +9,9 @@
   4. Top-left pixel of card at col 1, row 0  → measures column spacing
   5. Top-left pixel of card at col 0, row 1  → measures stack/row spacing
 
-From those five points the script derives:
-  col_spacing = p4.x − p3.x
-  row_spacing = p5.y − p3.y
-  peek_w      = col_spacing − peek_w_margin  (pixels)
-  peek_h      = row_spacing − peek_h_margin  (pixels)
-  slot boxes  = one rectangle per (col, row) anchored from p3
+From those five points the script derives an initial guess, then lets you
+fine-tune with 6 sliders:
+    1) start_x, 2) start_y, 3) dist_x, 4) dist_y, 5) box_w, 6) box_h
 """
 
 from __future__ import annotations
@@ -106,11 +103,12 @@ class _MultiClickSelector:
 def _build_grid(
     board_p1: Tuple[int, int],
     board_p2: Tuple[int, int],
-    anchor: Tuple[int, int],
-    col1_anchor: Tuple[int, int],
-    row1_anchor: Tuple[int, int],
-    peek_w_margin: int,
-    peek_h_margin: int,
+    start_x: int,
+    start_y: int,
+    dist_x: int,
+    dist_y: int,
+    box_w: int,
+    box_h: int,
     cols: int = 9,
     rows: int = 4,
 ) -> Dict[str, object]:
@@ -119,48 +117,44 @@ def _build_grid(
     x2 = max(board_p1[0], board_p2[0])
     y2 = max(board_p1[1], board_p2[1])
 
-    col_spacing = col1_anchor[0] - anchor[0]
-    row_spacing = row1_anchor[1] - anchor[1]
-
-    if col_spacing <= 0 or row_spacing <= 0:
+    if dist_x <= 0 or dist_y <= 0:
         raise ValueError(
-            f"Bad reference clicks: col_spacing={col_spacing}, row_spacing={row_spacing}. "
-            "Make sure col=1 is to the right of col=0 and row=1 is below row=0."
+            f"Invalid spacing: dist_x={dist_x}, dist_y={dist_y}. Both must be > 0."
         )
-
-    peek_w = max(4, col_spacing - peek_w_margin)
-    peek_h = max(4, row_spacing - peek_h_margin)
+    if box_w <= 0 or box_h <= 0:
+        raise ValueError(
+            f"Invalid box size: box_w={box_w}, box_h={box_h}. Both must be > 0."
+        )
 
     slots: List[List[Dict[str, int]]] = []
     col_lefts: List[int] = []
     row_tops: List[int] = []
 
     for col in range(cols):
-        col_lefts.append(anchor[0] + col_spacing * col)
+        col_lefts.append(start_x + dist_x * col)
 
     for row in range(rows):
-        row_tops.append(anchor[1] + row_spacing * row)
+        row_tops.append(start_y + dist_y * row)
 
     for col in range(cols):
         column_slots: List[Dict[str, int]] = []
         for row in range(rows):
-            # Center the peek strip horizontally within the column slot
-            sx = col_lefts[col] + (col_spacing - peek_w) // 2
+            sx = col_lefts[col]
             sy = row_tops[row]
-            column_slots.append({"x": int(sx), "y": int(sy), "w": int(peek_w), "h": int(peek_h)})
+            column_slots.append({"x": int(sx), "y": int(sy), "w": int(box_w), "h": int(box_h)})
         slots.append(column_slots)
 
     return {
         "board_rect": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
         "rows": rows,
         "cols": cols,
-        "col_spacing": col_spacing,
-        "row_spacing": row_spacing,
-        "anchor": {"x": anchor[0], "y": anchor[1]},
+        "col_spacing": dist_x,
+        "row_spacing": dist_y,
+        "anchor": {"x": start_x, "y": start_y},
         "col_lefts": col_lefts,
         "row_tops": row_tops,
-        "peek_w": peek_w,
-        "peek_h": peek_h,
+        "peek_w": box_w,
+        "peek_h": box_h,
         "slot_boxes": slots,
     }
 
@@ -217,31 +211,111 @@ def run_calibration(args: argparse.Namespace) -> bool:
         points[0], points[1], points[2], points[3], points[4],
     )
 
-    try:
-        config = _build_grid(
-            board_p1, board_p2, anchor, col1_anchor, row1_anchor,
-            peek_w_margin=args.peek_w_margin,
-            peek_h_margin=args.peek_h_margin,
+    base_start_x = anchor[0]
+    base_start_y = anchor[1]
+    base_dist_x = col1_anchor[0] - anchor[0]
+    base_dist_y = row1_anchor[1] - anchor[1]
+
+    if base_dist_x <= 0 or base_dist_y <= 0:
+        print(
+            "Calibration error: bad reference clicks. "
+            "Need col 1 anchor right of col 0 and row 1 anchor below row 0."
         )
-    except ValueError as exc:
-        print(f"Calibration error: {exc}")
         return False
 
-    print(f"  col_spacing = {config['col_spacing']} px")
-    print(f"  row_spacing = {config['row_spacing']} px")
-    print(f"  peek box    = {config['peek_w']} × {config['peek_h']} px")
+    base_box_w = max(4, base_dist_x - args.peek_w_margin)
+    base_box_h = max(4, base_dist_y - args.peek_h_margin)
 
-    overlay = _draw_overlay(selector.image, config)
-    win = "Calibration Preview"
+    print(f"  initial start = ({base_start_x}, {base_start_y}) px")
+    print(f"  initial dist  = ({base_dist_x}, {base_dist_y}) px")
+    print(f"  initial box   = {base_box_w} × {base_box_h} px")
+
+    _SLIDER_CENTRE = 200
+    _SLIDER_MAX = 400
+
+    win = "Calibration Preview  |  Y = save   ESC = cancel"
     cv2.namedWindow(win)
-    cv2.imshow(win, overlay)
+    cv2.createTrackbar("1) offset_x", win, _SLIDER_CENTRE, _SLIDER_MAX, lambda _: None)
+    cv2.createTrackbar("2) offset_y", win, _SLIDER_CENTRE, _SLIDER_MAX, lambda _: None)
+    cv2.createTrackbar("3) distance_x", win, _SLIDER_CENTRE, _SLIDER_MAX, lambda _: None)
+    cv2.createTrackbar("4) distance_y", win, _SLIDER_CENTRE, _SLIDER_MAX, lambda _: None)
+    cv2.createTrackbar("5) width", win, _SLIDER_CENTRE, _SLIDER_MAX, lambda _: None)
+    cv2.createTrackbar("6) height", win, _SLIDER_CENTRE, _SLIDER_MAX, lambda _: None)
+
+    def _read_values() -> Tuple[int, int, int, int, int, int]:
+        off_x = cv2.getTrackbarPos("1) offset_x", win) - _SLIDER_CENTRE
+        off_y = cv2.getTrackbarPos("2) offset_y", win) - _SLIDER_CENTRE
+        delta_dist_x = cv2.getTrackbarPos("3) distance_x", win) - _SLIDER_CENTRE
+        delta_dist_y = cv2.getTrackbarPos("4) distance_y", win) - _SLIDER_CENTRE
+        delta_w = cv2.getTrackbarPos("5) width", win) - _SLIDER_CENTRE
+        delta_h = cv2.getTrackbarPos("6) height", win) - _SLIDER_CENTRE
+
+        start_x = base_start_x + off_x
+        start_y = base_start_y + off_y
+        dist_x = max(1, base_dist_x + delta_dist_x)
+        dist_y = max(1, base_dist_y + delta_dist_y)
+        box_w = max(1, base_box_w + delta_w)
+        box_h = max(1, base_box_h + delta_h)
+        return start_x, start_y, dist_x, dist_y, box_w, box_h
+
+    def _redraw() -> Optional[Dict[str, object]]:
+        start_x, start_y, dist_x, dist_y, box_w, box_h = _read_values()
+        try:
+            cfg = _build_grid(
+                board_p1,
+                board_p2,
+                start_x,
+                start_y,
+                dist_x,
+                dist_y,
+                box_w,
+                box_h,
+            )
+        except ValueError:
+            return None
+
+        overlay = _draw_overlay(selector.image, cfg)
+        cv2.rectangle(overlay, (0, overlay.shape[0] - 62), (overlay.shape[1], overlay.shape[0]), (0, 0, 0), -1)
+        cv2.putText(
+            overlay,
+            f"start=({start_x},{start_y})  dist=({dist_x},{dist_y})  box=({box_w},{box_h})",
+            (10, overlay.shape[0] - 34),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.58,
+            (0, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+        cv2.putText(
+            overlay,
+            "Y = save    ESC = cancel",
+            (10, overlay.shape[0] - 10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.58,
+            (0, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+        cv2.imshow(win, overlay)
+        return cfg
+
+    latest_cfg = _redraw()
 
     while True:
-        key = cv2.waitKey(0) & 0xFF
+        key = cv2.waitKey(20) & 0xFF
+        latest_cfg = _redraw()
+
         if key in (ord("y"), ord("Y")):
+            if latest_cfg is None:
+                print("Cannot save: current slider combination is invalid.")
+                continue
             with CONFIG_PATH.open("w", encoding="utf-8") as f:
-                json.dump(config, f, indent=2)
-            print(f"Saved calibration to {CONFIG_PATH}")
+                json.dump(latest_cfg, f, indent=2)
+            vals = _read_values()
+            print(
+                f"Saved calibration to {CONFIG_PATH}  "
+                f"(start=({vals[0]},{vals[1]}), dist=({vals[2]},{vals[3]}), box=({vals[4]},{vals[5]}))"
+            )
             cv2.destroyWindow(win)
             return True
         if key == 27:

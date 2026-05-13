@@ -62,6 +62,10 @@ def _canonicalize_label(raw: str) -> Optional[str]:
         if s.startswith(rank) and len(s) == len(rank) + 1 and s[-1] in suit_map:
             return f"{rank}{suit_map[s[-1]]}"
 
+    # Short face aliases: fh -> face_h, fd -> face_d, fc -> face_c, fs -> face_s
+    if len(s) == 2 and s[0] == "f" and s[1] in {"h", "d", "c", "s"}:
+        return f"face_{s[1]}"
+
     # Face aliases: qh, jh, kh, ah -> face_h (same for d/c/s)
     if len(s) == 2 and s[0] in {"j", "q", "k", "a"} and s[1] in {"h", "d", "c", "s"}:
         return f"face_{s[1]}"
@@ -106,7 +110,7 @@ def capture_templates(config_path: Path, templates_dir: Path, overwrite: bool) -
 
     print("\nCapture labels for each visible slot.")
     print("Valid canonical labels:", ", ".join(ALL_LABELS))
-    print("Aliases: 8h->8r, 8c->8b, qh->face_h, as->face_s")
+    print("Aliases: 8h->8r, 8c->8b  |  face: fh fd fc fs  (or qh jh kh ah, or just h d c s)")
     print("Commands: skip/s, quit/q\n")
 
     saved = 0
