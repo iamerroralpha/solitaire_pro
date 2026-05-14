@@ -18,7 +18,12 @@ NUMBERED_LABELS: List[str] = [
     "10r",
 ]
 
-FACE_LABELS: List[str] = ["face_h", "face_d", "face_c", "face_s"]
+FACE_LABELS: List[str] = [
+    "jh", "qh", "kh", "ah",
+    "jd", "qd", "kd", "ad",
+    "jc", "qc", "kc", "ac",
+    "js", "qs", "ks", "as",
+]
 
 ALL_LABELS: List[str] = NUMBERED_LABELS + FACE_LABELS
 
@@ -27,12 +32,12 @@ CODE_TO_CARD: Dict[int, str] = {code: label for label, code in CARD_TO_CODE.item
 
 
 def is_valid_label(label: str) -> bool:
-    """Return True if label belongs to the known 14 classes."""
+    """Return True if label belongs to the known classes."""
     return label in CARD_TO_CODE
 
 
 def encode_label(label: str) -> int:
-    """Encode card label into compact integer code (1..14)."""
+    """Encode card label into compact integer code (1..N)."""
     try:
         return CARD_TO_CODE[label]
     except KeyError as exc:
@@ -40,7 +45,7 @@ def encode_label(label: str) -> int:
 
 
 def decode_code(code: int) -> str:
-    """Decode integer code (1..14) into card label."""
+    """Decode integer code (1..N) into card label."""
     if code == 0:
         return "empty"
     try:

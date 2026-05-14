@@ -18,6 +18,20 @@ CONFIG_PATH = Path("board_config.json")
 TEMPLATES_DIR = Path("templates")
 
 
+def _is_numbered_base_label(label: str) -> bool:
+    return len(label) >= 2 and label[-1] in {"r", "b"} and label[:-1].isdigit()
+
+
+def _next_numbered_variant_path(templates_dir: Path, base_label: str) -> Path:
+    """Return first available variant path: base_1.png, base_2.png, ..."""
+    idx = 1
+    while True:
+        candidate = templates_dir / f"{base_label}_{idx}.png"
+        if not candidate.exists():
+            return candidate
+        idx += 1
+
+
 
 def _load_config(path: Path) -> Dict[str, object]:
     if not path.exists():
@@ -62,17 +76,9 @@ def _canonicalize_label(raw: str) -> Optional[str]:
         if s.startswith(rank) and len(s) == len(rank) + 1 and s[-1] in suit_map:
             return f"{rank}{suit_map[s[-1]]}"
 
-    # Short face aliases: fh -> face_h, fd -> face_d, fc -> face_c, fs -> face_s
-    if len(s) == 2 and s[0] == "f" and s[1] in {"h", "d", "c", "s"}:
-        return f"face_{s[1]}"
-
-    # Face aliases: qh, jh, kh, ah -> face_h (same for d/c/s)
+    # Face labels are now exact rank+suit: jh/qh/kh/ah ... js/qs/ks/as
     if len(s) == 2 and s[0] in {"j", "q", "k", "a"} and s[1] in {"h", "d", "c", "s"}:
-        return f"face_{s[1]}"
-
-    # Suit-only aliases for face classes.
-    if s in {"h", "d", "c", "s"}:
-        return f"face_{s}"
+        return s
 
     return None
 
@@ -110,7 +116,7 @@ def capture_templates(config_path: Path, templates_dir: Path, overwrite: bool) -
 
     print("\nCapture labels for each visible slot.")
     print("Valid canonical labels:", ", ".join(ALL_LABELS))
-    print("Aliases: 8h->8r, 8c->8b  |  face: fh fd fc fs  (or qh jh kh ah, or just h d c s)")
+    print("Aliases: 8h->8r, 8c->8b  |  face labels must be exact: jh qh kh ah jd qd ... as")
     print("Commands: skip/s, quit/q\n")
 
     saved = 0
@@ -144,9 +150,13 @@ def capture_templates(config_path: Path, templates_dir: Path, overwrite: bool) -
 
                 out_path = templates_dir / f"{label}.png"
                 if out_path.exists() and not overwrite:
-                    skipped_existing += 1
-                    print(f"{out_path} already exists, skipped")
-                    break
+                    if _is_numbered_base_label(label):
+                        out_path = _next_numbered_variant_path(templates_dir, label)
+                        print(f"Base template exists, saving numbered variant as {out_path.name}")
+                    else:
+                        skipped_existing += 1
+                        print(f"{out_path} already exists, skipped")
+                        break
 
                 cv2.imwrite(str(out_path), crop)
                 saved += 1

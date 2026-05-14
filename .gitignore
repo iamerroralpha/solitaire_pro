@@ -29,6 +29,9 @@ dist/
 *.egg-info/
 .eggs/
 
+# Project artifacts
+templates/
+
 # macOS
 .DS_Store
 
