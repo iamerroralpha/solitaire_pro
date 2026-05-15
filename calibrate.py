@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -35,6 +37,94 @@ _CLICK_PROMPTS: List[str] = [
     "4/5  TOP-LEFT of card  col=1, row=0  (first card, second column)",
     "5/5  TOP-LEFT of card  col=0, row=1  (second card, first column)",
 ]
+
+
+def _is_exapunks_running() -> bool:
+    """Return True if an EXAPUNKS process is currently running."""
+    try:
+        proc = subprocess.run(
+            ["pgrep", "-ifl", "EXAPUNKS"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except Exception as exc:
+        print(f"Warning: could not check EXAPUNKS process state: {exc}")
+        return False
+    return bool(proc.stdout.strip())
+
+
+def _osascript(script: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["osascript", "-e", script],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _is_exapunks_fullscreen() -> Optional[bool]:
+    """Best-effort check of EXAPUNKS fullscreen state.
+
+    Returns:
+        True/False if readable, None if state cannot be determined.
+    """
+    script = (
+        'tell application "System Events"\n'
+        '  if not (exists process "EXAPUNKS") then return "not_running"\n'
+        '  tell process "EXAPUNKS"\n'
+        '    if not (exists window 1) then return "no_window"\n'
+        '    try\n'
+        '      return (value of attribute "AXFullScreen" of window 1) as string\n'
+        '    on error\n'
+        '      return "unknown"\n'
+        '    end try\n'
+        '  end tell\n'
+        'end tell'
+    )
+    proc = _osascript(script)
+    if proc.returncode != 0:
+        return None
+    out = proc.stdout.strip().lower()
+    if out == "true":
+        return True
+    if out == "false":
+        return False
+    return None
+
+
+def _ensure_exapunks_fullscreen() -> None:
+    """If EXAPUNKS is running, bring it to front and ensure fullscreen."""
+    if not _is_exapunks_running():
+        print("EXAPUNKS not detected. Continuing without app focus/fullscreen automation.")
+        return
+
+    print("EXAPUNKS detected. Activating app window…")
+    activate = _osascript('tell application "EXAPUNKS" to activate')
+    if activate.returncode != 0:
+        err = activate.stderr.strip() or activate.stdout.strip()
+        print(f"Warning: could not activate EXAPUNKS automatically: {err}")
+        return
+
+    time.sleep(0.35)
+
+    fs = _is_exapunks_fullscreen()
+    if fs is True:
+        print("EXAPUNKS already fullscreen.")
+        time.sleep(0.25)
+        return
+
+    print("Switching EXAPUNKS to fullscreen (Ctrl+Cmd+F)…")
+    toggle = _osascript(
+        'tell application "System Events" to keystroke "f" using {control down, command down}'
+    )
+    if toggle.returncode != 0:
+        err = toggle.stderr.strip() or toggle.stdout.strip()
+        print(f"Warning: fullscreen toggle failed: {err}")
+        print("You can manually fullscreen EXAPUNKS and rerun calibration.")
+        return
+
+    time.sleep(0.8)
 
 
 class _MultiClickSelector:
@@ -202,6 +292,8 @@ def _draw_overlay(image: np.ndarray, config: Dict[str, object]) -> np.ndarray:
 
 
 def run_calibration(args: argparse.Namespace) -> bool:
+    _ensure_exapunks_fullscreen()
+
     selector = _MultiClickSelector(_CLICK_PROMPTS)
     points = selector.run()
     if not points:

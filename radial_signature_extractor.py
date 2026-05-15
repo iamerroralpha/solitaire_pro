@@ -80,27 +80,50 @@ def compute_edges(blurred: np.ndarray, threshold: int) -> np.ndarray:
     return cv2.Canny(blurred, low, high, L2gradient=True)
 
 
-def show_gaussian_grid(names: List[str], blurred_images: List[np.ndarray]) -> None:
-    """Display a grid of Gaussian-filtered images and wait for the window to be closed."""
-    n = len(blurred_images)
-    ncols = min(8, n)
-    nrows = max(1, int(np.ceil(n / ncols)))
+def show_debug_figures(
+    records: "List[Tuple[Path, np.ndarray, np.ndarray, np.ndarray, Dict[str, object]]]",
+) -> None:
+    """Show a 4-panel debug figure per image: original / gaussian / edges / signature."""
+    for img_path, gray, blurred, edges, sig in records:
+        fig = plt.figure(figsize=(14, 3.8))
+        fig.suptitle(img_path.name, fontsize=12)
 
-    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 2.0, nrows * 2.2))
-    fig.suptitle("Step 1 — Gaussian filtered images", fontsize=13)
+        # --- Panel 1: original grayscale ---
+        ax1 = fig.add_subplot(1, 4, 1)
+        ax1.imshow(gray, cmap="gray", vmin=0, vmax=255)
+        ax1.set_title("1 · Original", fontsize=9)
+        ax1.axis("off")
 
-    axes_flat = np.array(axes).flatten().tolist() if n > 1 else [axes]
+        # --- Panel 2: gaussian filtered ---
+        ax2 = fig.add_subplot(1, 4, 2)
+        ax2.imshow(blurred, cmap="gray", vmin=0, vmax=255)
+        ax2.set_title("2 · Gaussian", fontsize=9)
+        ax2.axis("off")
 
-    for ax, name, img in zip(axes_flat, names, blurred_images):
-        ax.imshow(img, cmap="gray", vmin=0, vmax=255)
-        ax.set_title(name, fontsize=7, pad=2)
-        ax.axis("off")
+        # --- Panel 3: Canny edge map ---
+        ax3 = fig.add_subplot(1, 4, 3)
+        ax3.imshow(edges, cmap="gray", vmin=0, vmax=255)
+        cx = sig["centroid"]["x"]
+        cy = sig["centroid"]["y"]
+        ax3.plot(cx, cy, "r+", markersize=10, markeredgewidth=1.5)
+        ax3.set_title("3 · Edges", fontsize=9)
+        ax3.axis("off")
 
-    for ax in axes_flat[n:]:
-        ax.set_visible(False)
+        # --- Panel 4: radial signature (polar) ---
+        ax4 = fig.add_subplot(1, 4, 4, projection="polar")
+        signature = np.array(sig["signature"], dtype=np.float32)
+        bins = signature.size
+        theta = np.linspace(0, 2 * np.pi, bins, endpoint=False)
+        theta_c = np.append(theta, theta[0])
+        r_c = np.append(signature, signature[0])
+        ax4.plot(theta_c, r_c, linewidth=1.4, color="steelblue")
+        ax4.fill(theta_c, r_c, alpha=0.15, color="steelblue")
+        ax4.set_yticklabels([])
+        ax4.set_xticklabels([])
+        ax4.set_title("4 · Radial signature", fontsize=9, pad=10)
 
-    plt.tight_layout()
-    plt.show()
+        plt.tight_layout()
+        plt.show()
 
 
 def interpolate_circular_zeros(signature: np.ndarray) -> np.ndarray:
@@ -184,8 +207,11 @@ def main() -> None:
     images = collect_images(args.input_dir)
     print(f"Found {len(images)} image(s) in {args.input_dir}")
 
-    # ── Pass 1: load images and apply Gaussian filter ──────────────────────
-    loaded: List[Tuple[Path, np.ndarray, np.ndarray]] = []  # (path, gray, blurred)
+    # ── Pass 1: load → gaussian → edges → signature ──────────────────────────
+    # Collect all data first so debug figures can be shown before saving JSON.
+    Record = Tuple[Path, np.ndarray, np.ndarray, np.ndarray, Dict[str, object]]
+    records: List[Record] = []
+
     for img_path in images:
         bgr = cv2.imread(str(img_path), cv2.IMREAD_COLOR)
         if bgr is None:
@@ -193,32 +219,29 @@ def main() -> None:
             continue
         gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
         blurred = apply_gaussian(gray, blur_slider=args.blur)
-        loaded.append((img_path, gray, blurred))
-
-    if not args.no_preview and loaded:
-        show_gaussian_grid(
-            names=[p.name for p, _, _ in loaded],
-            blurred_images=[b for _, _, b in loaded],
-        )
-
-    # ── Pass 2: edge detection + radial signature ────────────────────────────
-    entries: List[Dict[str, object]] = []
-    for img_path, _gray, blurred in loaded:
         edges = compute_edges(blurred, threshold=args.canny_threshold)
         sig = radial_distance_signature(edges, bins=args.bins)
-
+        records.append((img_path, gray, blurred, edges, sig))
         print(
             f"  {img_path.name}: edge_pixels={sig['edge_pixels']}, "
             f"max_radius={sig['max_radius']:.2f}"
         )
 
-        entries.append({
+    # ── Pass 2: debug visualisation ──────────────────────────────────────────
+    if not args.no_preview and records:
+        show_debug_figures(records)
+
+    # ── Pass 3: build output entries ─────────────────────────────────────────
+    entries: List[Dict[str, object]] = [
+        {
             "file": img_path.name,
             "centroid": sig["centroid"],
             "edge_pixels": sig["edge_pixels"],
             "max_radius": sig["max_radius"],
             "signature": sig["signature"],
-        })
+        }
+        for img_path, _gray, _blurred, _edges, sig in records
+    ]
 
     payload = {
         "bins": args.bins,
