@@ -1,0 +1,11 @@
+{"ts_utc": "2026-05-15T21:59:36.342471+00:00", "round": 1, "status": "aborted", "duration_s": 7.4231, "planned_moves": 0, "completed_moves": 0, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:02:34.137448+00:00", "round": 1, "status": "aborted", "duration_s": 1.7422, "planned_moves": 0, "completed_moves": 0, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:03:18.556900+00:00", "round": 1, "status": "solved", "duration_s": 30.5136, "planned_moves": 34, "completed_moves": 34, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:03:51.796452+00:00", "round": 2, "status": "solved", "duration_s": 33.238, "planned_moves": 40, "completed_moves": 40, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:04:21.013503+00:00", "round": 3, "status": "solved", "duration_s": 29.2161, "planned_moves": 32, "completed_moves": 32, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:04:51.273899+00:00", "round": 4, "status": "solved", "duration_s": 30.2594, "planned_moves": 35, "completed_moves": 35, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:05:22.911313+00:00", "round": 5, "status": "solved", "duration_s": 31.6365, "planned_moves": 35, "completed_moves": 35, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:06:11.818137+00:00", "round": 1, "status": "solved", "duration_s": 30.2282, "planned_moves": 35, "completed_moves": 35, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:06:44.267410+00:00", "round": 2, "status": "solved", "duration_s": 32.4466, "planned_moves": 37, "completed_moves": 37, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:09:16.343272+00:00", "round": 1, "status": "solved", "duration_s": 33.9156, "planned_moves": 39, "completed_moves": 39, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-15T22:09:46.275394+00:00", "round": 2, "status": "solved", "duration_s": 29.9301, "planned_moves": 34, "completed_moves": 34, "dry_run": false, "error": ""}
