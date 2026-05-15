@@ -94,6 +94,22 @@ def annotate_tile(original: np.ndarray, processed: np.ndarray, label: str) -> np
     return cv2.vconcat([side_by_side, strip])
 
 
+def trim_zero_borders(edge_img: np.ndarray) -> np.ndarray:
+    """Trim fully-zero outer rows/cols from a binary edge image.
+
+    If no non-zero pixels exist, returns the input unchanged.
+    """
+    ys, xs = np.where(edge_img > 0)
+    if xs.size == 0:
+        return edge_img
+
+    y1 = int(ys.min())
+    y2 = int(ys.max()) + 1
+    x1 = int(xs.min())
+    x2 = int(xs.max()) + 1
+    return edge_img[y1:y2, x1:x2]
+
+
 def build_final_grid(crops: List[List[np.ndarray]], params: Dict[str, int], tile_gap: int) -> np.ndarray:
     cols = len(crops)
     rows = len(crops[0]) if cols > 0 else 0
@@ -125,6 +141,7 @@ def build_final_grid(crops: List[List[np.ndarray]], params: Dict[str, int], tile
                 max_radius_pct=params["max_radius_pct"],
                 min_component_area=params["min_component_area"],
             )
+            filtered = trim_zero_borders(filtered)
             tile = annotate_tile(crop, filtered, label=f"c{c} r{r}")
 
             y1 = header_h + tile_gap + r * (tile_h + tile_gap)
