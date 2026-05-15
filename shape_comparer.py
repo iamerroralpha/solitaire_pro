@@ -17,6 +17,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -89,6 +91,17 @@ def parse_args() -> argparse.Namespace:
         "--precompute-sigs",
         action="store_true",
         help="Recompute and overwrite the radial signatures cache, then exit.",
+    )
+    parser.add_argument(
+        "--state-out",
+        type=Path,
+        default=Path("normalized_board_state.json"),
+        help="Where to save the normalized board state JSON for the solver.",
+    )
+    parser.add_argument(
+        "--solver-mode",
+        action="store_true",
+        help="Run silently and headless for solver integration (no logs, no preview window).",
     )
     return parser.parse_args()
 
@@ -166,8 +179,14 @@ def finalize_prediction(shape_label: Optional[str], crop: np.ndarray, mask: np.n
     return shape_label, "unknown", 0
 
 
-def print_sanity_check(predictions: List[List[Tuple[Optional[str], float, str, Optional[str], str]]]) -> None:
+def print_sanity_check(
+    predictions: List[List[Tuple[Optional[str], float, str, Optional[str], str]]],
+    verbose: bool = True,
+) -> None:
     """Check expected board counts from final predicted labels and print a summary."""
+    if not verbose:
+        return
+
     counts = Counter(
         pred
         for column in predictions
@@ -200,7 +219,83 @@ def print_sanity_check(predictions: List[List[Tuple[Optional[str], float, str, O
         print("Sanity check PASSED")
 
 
-def load_reference_shapes(shapes_dir: Path) -> Dict[str, List[np.ndarray]]:
+def parse_final_label(label: str) -> Tuple[str, str, str]:
+    """Convert encoded label into (rank, suit, color)."""
+    if label in FACE_LABEL_SET:
+        suit = label[1]
+        color = "red" if suit in ("h", "d") else "black"
+        return "F", suit, color
+    if label.endswith("r") or label.endswith("b"):
+        rank = label[:-1]
+        color = "red" if label.endswith("r") else "black"
+        return rank, "?", color
+    return "?", "?", "unknown"
+
+
+def export_normalized_board_state(
+    cfg: Dict[str, object],
+    slot_boxes: List[List[Dict[str, int]]],
+    predictions: List[List[Tuple[Optional[str], float, str, Optional[str], str]]],
+    out_path: Path,
+    verbose: bool = True,
+) -> None:
+    """Save solver-ready normalized state JSON from predictions."""
+    cols = len(slot_boxes)
+    rows = len(slot_boxes[0]) if cols else 0
+
+    columns: List[List[Dict[str, object]]] = []
+    empty_spaces: List[Dict[str, int]] = []
+
+    for c in range(cols):
+        col_cards: List[Dict[str, object]] = []
+        for r in range(rows):
+            pred_label = predictions[c][r][0]
+            box = slot_boxes[c][r]
+            if pred_label is None:
+                empty_spaces.append({"col": c, "row": r})
+                continue
+
+            rank, suit, color = parse_final_label(pred_label)
+            card_obj: Dict[str, object] = {
+                "label": pred_label,
+                "rank": rank,
+                "suit": suit,
+                "color": color,
+                "screen_position": {
+                    "x": int(box["x"]),
+                    "y": int(box["y"]),
+                    "w": int(box["w"]),
+                    "h": int(box["h"]),
+                },
+                "board_position": {"col": c, "row": r},
+            }
+            col_cards.append(card_obj)
+        columns.append(col_cards)
+
+    holder_box_raw = cfg.get("holder_box") if isinstance(cfg, dict) else None
+    holder_box = holder_box_raw if isinstance(holder_box_raw, dict) else None
+
+    state: Dict[str, object] = {
+        "meta": {
+            "rows": int(cfg.get("rows", rows)) if isinstance(cfg, dict) else rows,
+            "cols": int(cfg.get("cols", cols)) if isinstance(cfg, dict) else cols,
+            "max_visible_rows": rows,
+        },
+        "holder": {
+            "card": None,
+            "screen_position": holder_box,
+        },
+        "columns": columns,
+        "empty_spaces": empty_spaces,
+    }
+
+    with out_path.open("w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+    if verbose:
+        print(f"Saved normalized board state -> {out_path}")
+
+
+def load_reference_shapes(shapes_dir: Path, verbose: bool = True) -> Dict[str, List[np.ndarray]]:
     """Load all label_index.png files and group contours by label."""
     if not shapes_dir.exists():
         raise FileNotFoundError(f"Shapes directory not found: {shapes_dir}")
@@ -223,7 +318,8 @@ def load_reference_shapes(shapes_dir: Path) -> Dict[str, List[np.ndarray]]:
     if not refs:
         raise ValueError(f"No valid reference shapes found in {shapes_dir}.")
 
-    print(f"Loaded references: { {k: len(v) for k, v in refs.items()} }")
+    if verbose:
+        print(f"Loaded references: { {k: len(v) for k, v in refs.items()} }")
     return refs
 
 
@@ -264,6 +360,7 @@ def precompute_and_save_signatures(
     refs: Dict[str, List[np.ndarray]],
     cache_path: Path,
     n_angles: int = RADIAL_ANGLES,
+    verbose: bool = True,
 ) -> Dict[str, List[List[float]]]:
     """Compute radial signatures for every reference image and save to JSON.
 
@@ -278,11 +375,13 @@ def precompute_and_save_signatures(
             if s is not None:
                 sigs.append(s.tolist())
         data[label] = sigs
-        print(f"  {label}: {len(sigs)} signature(s) computed")
+        if verbose:
+            print(f"  {label}: {len(sigs)} signature(s) computed")
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     with cache_path.open("w", encoding="utf-8") as f:
         json.dump({"n_angles": n_angles, "signatures": data}, f)
-    print(f"Saved signatures cache → {cache_path}")
+    if verbose:
+        print(f"Saved signatures cache -> {cache_path}")
     return data
 
 
@@ -290,6 +389,7 @@ def load_or_build_signatures(
     refs: Dict[str, List[np.ndarray]],
     cache_path: Path,
     n_angles: int = RADIAL_ANGLES,
+    verbose: bool = True,
 ) -> Dict[str, List[np.ndarray]]:
     """Load pre-saved signatures from JSON, or build them if cache is absent.
 
@@ -300,18 +400,21 @@ def load_or_build_signatures(
             raw = json.load(f)
         cached_n = int(raw.get("n_angles", n_angles))
         if cached_n != n_angles:
-            print(
-                f"WARNING: cached n_angles={cached_n} != requested {n_angles}; recomputing."
-            )
+            if verbose:
+                print(
+                    f"WARNING: cached n_angles={cached_n} != requested {n_angles}; recomputing."
+                )
         else:
-            print(f"Loaded radial signatures cache from {cache_path}")
+            if verbose:
+                print(f"Loaded radial signatures cache from {cache_path}")
             result: Dict[str, List[np.ndarray]] = {}
             for lbl, sigs in raw["signatures"].items():
                 result[lbl] = [np.array(s, dtype=np.float64) for s in sigs]
             return result
 
-    print("No signatures cache found; computing now...")
-    raw_data = precompute_and_save_signatures(refs, cache_path, n_angles)
+    if verbose:
+        print("No signatures cache found; computing now...")
+    raw_data = precompute_and_save_signatures(refs, cache_path, n_angles, verbose=verbose)
     return {lbl: [np.array(s, dtype=np.float64) for s in sigs] for lbl, sigs in raw_data.items()}
 
 
@@ -480,6 +583,7 @@ def build_result_mosaic(
 
 def main() -> None:
     args = parse_args()
+    verbose = not args.solver_mode
 
     cfg = load_config(args.config)
     params = load_params(args.params)
@@ -487,26 +591,33 @@ def main() -> None:
     if not slot_boxes or not slot_boxes[0]:
         raise ValueError("Config slot_boxes is empty.")
 
-    refs = load_reference_shapes(args.shapes_dir)
+    refs = load_reference_shapes(args.shapes_dir, verbose=verbose)
 
     sigs_cache = args.sigs_cache if args.sigs_cache else args.shapes_dir / SIG_CACHE_FILENAME
 
     if args.precompute_sigs:
-        precompute_and_save_signatures(refs, sigs_cache)
-        print("Done. Exiting.")
+        precompute_and_save_signatures(refs, sigs_cache, verbose=verbose)
+        if verbose:
+            print("Done. Exiting.")
         return
 
-    radial_refs = load_or_build_signatures(refs, sigs_cache)
+    radial_refs = load_or_build_signatures(refs, sigs_cache, verbose=verbose)
 
-    print(
-        f"Params: low={params['low_threshold']} high={params['high_threshold']} "
-        f"blur_k={odd_kernel_from_slider(params['blur_slider'])} "
-        f"min_r%={params['min_radius_pct']} max_r%={params['max_radius_pct']} "
-        f"min_area={params['min_component_area']}"
-    )
+    if verbose:
+        print(
+            f"Params: low={params['low_threshold']} high={params['high_threshold']} "
+            f"blur_k={odd_kernel_from_slider(params['blur_slider'])} "
+            f"min_r%={params['min_radius_pct']} max_r%={params['max_radius_pct']} "
+            f"min_area={params['min_component_area']}"
+        )
 
-    _ensure_exapunks_fullscreen()
-    print("Capturing screenshot and processing slots...")
+    if verbose:
+        _ensure_exapunks_fullscreen()
+    else:
+        with contextlib.redirect_stdout(io.StringIO()):
+            _ensure_exapunks_fullscreen()
+    if verbose:
+        print("Capturing screenshot and processing slots...")
     crops = capture_all_crops(slot_boxes)
 
     # Build processed masks and run matching.
@@ -525,24 +636,26 @@ def main() -> None:
             col_processed.append(mask)
             col_preds.append((final_pred, score, mname, shape_pred, color_name))
 
-            print(
-                f"  slot c{c} r{r}: shape={shape_pred}  final={final_pred}  "
-                f"color={color_name}  red_pixels={red_pixels}  method={mname}  score={score:.4f}"
-            )
+            if verbose:
+                print(
+                    f"  slot c{c} r{r}: shape={shape_pred}  final={final_pred}  "
+                    f"color={color_name}  red_pixels={red_pixels}  method={mname}  score={score:.4f}"
+                )
 
         processed_grid.append(col_processed)
         predictions.append(col_preds)
 
-    print_sanity_check(predictions)
+    print_sanity_check(predictions, verbose=verbose)
+    export_normalized_board_state(cfg, slot_boxes, predictions, args.state_out, verbose=verbose)
 
-    mosaic = build_result_mosaic(crops, processed_grid, predictions, tile_gap=args.tile_gap)
-
-    cv2.namedWindow("Shape Comparer", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Shape Comparer", 1800, 950)
-    cv2.imshow("Shape Comparer", mosaic)
-    print("\nPress any key to close.")
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if not args.solver_mode:
+        mosaic = build_result_mosaic(crops, processed_grid, predictions, tile_gap=args.tile_gap)
+        cv2.namedWindow("Shape Comparer", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("Shape Comparer", 1800, 950)
+        cv2.imshow("Shape Comparer", mosaic)
+        print("\nPress any key to close.")
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

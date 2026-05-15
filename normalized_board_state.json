@@ -1,0 +1,608 @@
+{
+  "meta": {
+    "rows": 4,
+    "cols": 9,
+    "max_visible_rows": 4
+  },
+  "holder": {
+    "card": null,
+    "screen_position": null
+  },
+  "columns": [
+    [
+      {
+        "label": "fh",
+        "rank": "F",
+        "suit": "h",
+        "color": "red",
+        "screen_position": {
+          "x": 366,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 0,
+          "row": 0
+        }
+      },
+      {
+        "label": "fd",
+        "rank": "F",
+        "suit": "d",
+        "color": "red",
+        "screen_position": {
+          "x": 366,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 0,
+          "row": 1
+        }
+      },
+      {
+        "label": "9r",
+        "rank": "9",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 366,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 0,
+          "row": 2
+        }
+      },
+      {
+        "label": "6b",
+        "rank": "6",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 366,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 0,
+          "row": 3
+        }
+      }
+    ],
+    [
+      {
+        "label": "fd",
+        "rank": "F",
+        "suit": "d",
+        "color": "red",
+        "screen_position": {
+          "x": 500,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 1,
+          "row": 0
+        }
+      },
+      {
+        "label": "7b",
+        "rank": "7",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 500,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 1,
+          "row": 1
+        }
+      },
+      {
+        "label": "fs",
+        "rank": "F",
+        "suit": "s",
+        "color": "black",
+        "screen_position": {
+          "x": 500,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 1,
+          "row": 2
+        }
+      },
+      {
+        "label": "fs",
+        "rank": "F",
+        "suit": "s",
+        "color": "black",
+        "screen_position": {
+          "x": 500,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 1,
+          "row": 3
+        }
+      }
+    ],
+    [
+      {
+        "label": "8b",
+        "rank": "8",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 634,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 2,
+          "row": 0
+        }
+      },
+      {
+        "label": "fd",
+        "rank": "F",
+        "suit": "d",
+        "color": "red",
+        "screen_position": {
+          "x": 634,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 2,
+          "row": 1
+        }
+      },
+      {
+        "label": "9r",
+        "rank": "9",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 634,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 2,
+          "row": 2
+        }
+      },
+      {
+        "label": "9b",
+        "rank": "9",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 634,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 2,
+          "row": 3
+        }
+      }
+    ],
+    [
+      {
+        "label": "fh",
+        "rank": "F",
+        "suit": "h",
+        "color": "red",
+        "screen_position": {
+          "x": 768,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 3,
+          "row": 0
+        }
+      },
+      {
+        "label": "fh",
+        "rank": "F",
+        "suit": "h",
+        "color": "red",
+        "screen_position": {
+          "x": 768,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 3,
+          "row": 1
+        }
+      },
+      {
+        "label": "8r",
+        "rank": "8",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 768,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 3,
+          "row": 2
+        }
+      },
+      {
+        "label": "fc",
+        "rank": "F",
+        "suit": "c",
+        "color": "black",
+        "screen_position": {
+          "x": 768,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 3,
+          "row": 3
+        }
+      }
+    ],
+    [
+      {
+        "label": "fc",
+        "rank": "F",
+        "suit": "c",
+        "color": "black",
+        "screen_position": {
+          "x": 902,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 4,
+          "row": 0
+        }
+      },
+      {
+        "label": "7b",
+        "rank": "7",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 902,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 4,
+          "row": 1
+        }
+      },
+      {
+        "label": "fd",
+        "rank": "F",
+        "suit": "d",
+        "color": "red",
+        "screen_position": {
+          "x": 902,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 4,
+          "row": 2
+        }
+      },
+      {
+        "label": "fh",
+        "rank": "F",
+        "suit": "h",
+        "color": "red",
+        "screen_position": {
+          "x": 902,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 4,
+          "row": 3
+        }
+      }
+    ],
+    [
+      {
+        "label": "6r",
+        "rank": "6",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 1036,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 5,
+          "row": 0
+        }
+      },
+      {
+        "label": "10r",
+        "rank": "10",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 1036,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 5,
+          "row": 1
+        }
+      },
+      {
+        "label": "7r",
+        "rank": "7",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 1036,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 5,
+          "row": 2
+        }
+      },
+      {
+        "label": "10r",
+        "rank": "10",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 1036,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 5,
+          "row": 3
+        }
+      }
+    ],
+    [
+      {
+        "label": "8b",
+        "rank": "8",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 1170,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 6,
+          "row": 0
+        }
+      },
+      {
+        "label": "6r",
+        "rank": "6",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 1170,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 6,
+          "row": 1
+        }
+      },
+      {
+        "label": "fs",
+        "rank": "F",
+        "suit": "s",
+        "color": "black",
+        "screen_position": {
+          "x": 1170,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 6,
+          "row": 2
+        }
+      },
+      {
+        "label": "6b",
+        "rank": "6",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 1170,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 6,
+          "row": 3
+        }
+      }
+    ],
+    [
+      {
+        "label": "9b",
+        "rank": "9",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 1304,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 7,
+          "row": 0
+        }
+      },
+      {
+        "label": "fs",
+        "rank": "F",
+        "suit": "s",
+        "color": "black",
+        "screen_position": {
+          "x": 1304,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 7,
+          "row": 1
+        }
+      },
+      {
+        "label": "fc",
+        "rank": "F",
+        "suit": "c",
+        "color": "black",
+        "screen_position": {
+          "x": 1304,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 7,
+          "row": 2
+        }
+      },
+      {
+        "label": "10b",
+        "rank": "10",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 1304,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 7,
+          "row": 3
+        }
+      }
+    ],
+    [
+      {
+        "label": "7r",
+        "rank": "7",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 1438,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 8,
+          "row": 0
+        }
+      },
+      {
+        "label": "10b",
+        "rank": "10",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 1438,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 8,
+          "row": 1
+        }
+      },
+      {
+        "label": "fc",
+        "rank": "F",
+        "suit": "c",
+        "color": "black",
+        "screen_position": {
+          "x": 1438,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 8,
+          "row": 2
+        }
+      },
+      {
+        "label": "8r",
+        "rank": "8",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 1438,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 8,
+          "row": 3
+        }
+      }
+    ]
+  ],
+  "empty_spaces": []
+}
