@@ -1,0 +1,6 @@
+{
+  "low_threshold": 109,
+  "high_threshold": 202,
+  "blur_slider": 1,
+  "blur_kernel": 3
+}
