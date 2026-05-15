@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Shared card label and integer encoding utilities for EXAPUNKS solitaire CV."""
+"""Shared card label and integer encoding utilities for EXAPUNKS solitaire CV.
+
+Face-like ranks are collapsed to F per suit.
+Examples:
+    ah -> fh
+    ad -> fd
+"""
 
 from __future__ import annotations
 
@@ -19,10 +25,10 @@ NUMBERED_LABELS: List[str] = [
 ]
 
 FACE_LABELS: List[str] = [
-    "jh", "qh", "kh", "ah",
-    "jd", "qd", "kd", "ad",
-    "jc", "qc", "kc", "ac",
-    "js", "qs", "ks", "as",
+    "fh",
+    "fd",
+    "fc",
+    "fs",
 ]
 
 ALL_LABELS: List[str] = NUMBERED_LABELS + FACE_LABELS
@@ -30,16 +36,28 @@ ALL_LABELS: List[str] = NUMBERED_LABELS + FACE_LABELS
 CARD_TO_CODE: Dict[str, int] = {label: idx + 1 for idx, label in enumerate(ALL_LABELS)}
 CODE_TO_CARD: Dict[int, str] = {code: label for label, code in CARD_TO_CODE.items()}
 
+ACE_TO_FACE: Dict[str, str] = {
+    "ah": "fh",
+    "ad": "fd",
+    "ac": "fc",
+    "as": "fs",
+}
+
+
+def normalize_label(label: str) -> str:
+    """Normalize aliases to canonical labels used in encoding."""
+    return ACE_TO_FACE.get(label, label)
+
 
 def is_valid_label(label: str) -> bool:
     """Return True if label belongs to the known classes."""
-    return label in CARD_TO_CODE
+    return normalize_label(label) in CARD_TO_CODE
 
 
 def encode_label(label: str) -> int:
     """Encode card label into compact integer code (1..N)."""
     try:
-        return CARD_TO_CODE[label]
+        return CARD_TO_CODE[normalize_label(label)]
     except KeyError as exc:
         raise ValueError(f"Unknown card label: {label}") from exc
 
