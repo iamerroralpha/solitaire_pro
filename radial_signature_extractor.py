@@ -18,10 +18,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif", ".webp"}
 
@@ -58,15 +59,48 @@ def parse_args() -> argparse.Namespace:
         default=1,
         help="Blur slider value (kernel = 2*blur+1, default: 1 -> kernel 3).",
     )
+    parser.add_argument(
+        "--no-preview",
+        action="store_true",
+        help="Skip the interactive Gaussian preview grid.",
+    )
     return parser.parse_args()
 
 
-def compute_edges(gray: np.ndarray, threshold: int, blur_slider: int) -> np.ndarray:
+def apply_gaussian(gray: np.ndarray, blur_slider: int) -> np.ndarray:
+    """Return Gaussian-blurred grayscale image."""
     kernel = max(1, 2 * int(blur_slider) + 1)
-    blurred = cv2.GaussianBlur(gray, (kernel, kernel), 0)
+    return cv2.GaussianBlur(gray, (kernel, kernel), 0)
+
+
+def compute_edges(blurred: np.ndarray, threshold: int) -> np.ndarray:
+    """Run Canny on an already-blurred grayscale image."""
     low = max(0, int(threshold))
     high = min(255, int(max(low + 1, low * 3)))
     return cv2.Canny(blurred, low, high, L2gradient=True)
+
+
+def show_gaussian_grid(names: List[str], blurred_images: List[np.ndarray]) -> None:
+    """Display a grid of Gaussian-filtered images and wait for the window to be closed."""
+    n = len(blurred_images)
+    ncols = min(8, n)
+    nrows = max(1, int(np.ceil(n / ncols)))
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 2.0, nrows * 2.2))
+    fig.suptitle("Step 1 — Gaussian filtered images", fontsize=13)
+
+    axes_flat = np.array(axes).flatten().tolist() if n > 1 else [axes]
+
+    for ax, name, img in zip(axes_flat, names, blurred_images):
+        ax.imshow(img, cmap="gray", vmin=0, vmax=255)
+        ax.set_title(name, fontsize=7, pad=2)
+        ax.axis("off")
+
+    for ax in axes_flat[n:]:
+        ax.set_visible(False)
+
+    plt.tight_layout()
+    plt.show()
 
 
 def interpolate_circular_zeros(signature: np.ndarray) -> np.ndarray:
@@ -150,15 +184,27 @@ def main() -> None:
     images = collect_images(args.input_dir)
     print(f"Found {len(images)} image(s) in {args.input_dir}")
 
-    entries: List[Dict[str, object]] = []
+    # ── Pass 1: load images and apply Gaussian filter ──────────────────────
+    loaded: List[Tuple[Path, np.ndarray, np.ndarray]] = []  # (path, gray, blurred)
     for img_path in images:
         bgr = cv2.imread(str(img_path), cv2.IMREAD_COLOR)
         if bgr is None:
             print(f"  [SKIP] Could not read: {img_path.name}")
             continue
-
         gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-        edges = compute_edges(gray, threshold=args.canny_threshold, blur_slider=args.blur)
+        blurred = apply_gaussian(gray, blur_slider=args.blur)
+        loaded.append((img_path, gray, blurred))
+
+    if not args.no_preview and loaded:
+        show_gaussian_grid(
+            names=[p.name for p, _, _ in loaded],
+            blurred_images=[b for _, _, b in loaded],
+        )
+
+    # ── Pass 2: edge detection + radial signature ────────────────────────────
+    entries: List[Dict[str, object]] = []
+    for img_path, _gray, blurred in loaded:
+        edges = compute_edges(blurred, threshold=args.canny_threshold)
         sig = radial_distance_signature(edges, bins=args.bins)
 
         print(
