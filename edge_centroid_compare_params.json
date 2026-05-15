@@ -1,0 +1,9 @@
+{
+  "low_threshold": 114,
+  "high_threshold": 202,
+  "blur_slider": 1,
+  "blur_kernel": 3,
+  "min_radius_pct": 0,
+  "max_radius_pct": 100,
+  "min_component_area": 10
+}

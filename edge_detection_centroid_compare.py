@@ -1,0 +1,349 @@
+#!/usr/bin/env python3
+"""Compare raw edge slots view vs centroid-distance filtered edge view.
+
+Left panel:
+  - Same product as edge_detection_slots_view / tuner (original + edge map per slot)
+
+Right panel:
+  - Same slots, but edge pixels filtered by radial distance from edge centroid.
+
+Controls:
+  Sliders in "Controls":
+    - low_threshold
+    - high_threshold
+    - blur
+    - min_radius_pct
+    - max_radius_pct
+    - min_component_area
+    - view_scale_pct
+
+  Keys:
+    - r: recapture screen crops (auto-focus EXAPUNKS fullscreen first)
+    - s: print current parameters and optionally save JSON
+    - q / ESC: quit
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+import cv2
+import numpy as np
+
+from calibrate import _ensure_exapunks_fullscreen
+from edge_detection_slots_tuner import (
+    LABEL_H,
+    edge_map,
+    load_config,
+    capture_all_crops,
+    upscale_to_min,
+    odd_kernel_from_slider,
+)
+
+
+DEFAULT_CONFIG = Path("board_config.json")
+DEFAULT_PARAMS = Path("edge_params.json")
+DEFAULT_SAVE = Path("edge_centroid_compare_params.json")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Side-by-side edge vs centroid-distance-filtered edge comparison over calibrated slots."
+    )
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG, help="Calibration config JSON.")
+    parser.add_argument(
+        "--params",
+        type=Path,
+        default=DEFAULT_PARAMS,
+        help="Base edge params JSON (for initial slider values).",
+    )
+    parser.add_argument(
+        "--save-params",
+        type=Path,
+        default=DEFAULT_SAVE,
+        help="Where to save current parameters when pressing 's'.",
+    )
+    parser.add_argument("--tile-gap", type=int, default=6, help="Gap between slot tiles.")
+    return parser.parse_args()
+
+
+def load_optional_json(path: Path) -> Dict[str, object]:
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data if isinstance(data, dict) else {}
+
+
+def filter_edges_by_centroid_distance(
+    edges: np.ndarray,
+    min_radius_pct: int,
+    max_radius_pct: int,
+    min_component_area: int,
+) -> np.ndarray:
+    """Keep edge pixels whose radius from edge centroid is within [min,max] % of max radius."""
+    ys, xs = np.where(edges > 0)
+    if xs.size == 0:
+        return np.zeros_like(edges)
+
+    cx = float(xs.mean())
+    cy = float(ys.mean())
+
+    dx = xs.astype(np.float32) - cx
+    dy = ys.astype(np.float32) - cy
+    radii = np.sqrt(dx * dx + dy * dy)
+    max_r = float(radii.max()) if radii.size else 0.0
+    if max_r <= 0.0:
+        return np.zeros_like(edges)
+
+    lo = max(0.0, min(100.0, float(min_radius_pct))) / 100.0
+    hi = max(lo, min(100.0, float(max_radius_pct))) / 100.0
+
+    keep = (radii >= (lo * max_r)) & (radii <= (hi * max_r))
+
+    out = np.zeros_like(edges)
+    if np.any(keep):
+        out[ys[keep], xs[keep]] = 255
+
+    # Optional tiny-component cleanup for noise control.
+    area_th = max(0, int(min_component_area))
+    if area_th > 0:
+        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(out, connectivity=8)
+        cleaned = np.zeros_like(out)
+        for i in range(1, num_labels):
+            area = int(stats[i, cv2.CC_STAT_AREA])
+            if area >= area_th:
+                cleaned[labels == i] = 255
+        out = cleaned
+
+    return out
+
+
+def annotate_tile(original: np.ndarray, edge_like: np.ndarray, label: str) -> np.ndarray:
+    orig_up = upscale_to_min(original)
+    disp_h, disp_w = orig_up.shape[:2]
+
+    edge_up = cv2.resize(edge_like, (disp_w, disp_h), interpolation=cv2.INTER_NEAREST)
+    edge_bgr = cv2.cvtColor(edge_up, cv2.COLOR_GRAY2BGR)
+    edge_bgr[edge_up > 0] = (0, 255, 0)
+
+    side_by_side = cv2.hconcat([orig_up, edge_bgr])
+
+    label_strip = np.zeros((LABEL_H, side_by_side.shape[1], 3), dtype=np.uint8)
+    cv2.putText(
+        label_strip,
+        label,
+        (4, LABEL_H - 4),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.45,
+        (200, 200, 200),
+        1,
+        cv2.LINE_AA,
+    )
+    return cv2.vconcat([side_by_side, label_strip])
+
+
+def build_mosaic(
+    crops: List[List[np.ndarray]],
+    low: int,
+    high: int,
+    blur_slider: int,
+    tile_gap: int,
+    filter_mode: bool,
+    min_radius_pct: int,
+    max_radius_pct: int,
+    min_component_area: int,
+) -> np.ndarray:
+    cols = len(crops)
+    rows = len(crops[0]) if cols > 0 else 0
+    if cols == 0 or rows == 0:
+        return np.zeros((200, 400, 3), dtype=np.uint8)
+
+    sample = upscale_to_min(crops[0][0])
+    disp_h, disp_w = sample.shape[:2]
+    tile_w = disp_w * 2
+    tile_h = disp_h + LABEL_H
+
+    canvas_h = rows * tile_h + (rows + 1) * tile_gap
+    canvas_w = cols * tile_w + (cols + 1) * tile_gap
+    canvas = np.full((canvas_h, canvas_w, 3), 20, dtype=np.uint8)
+
+    for c in range(cols):
+        for r in range(rows):
+            crop = crops[c][r]
+            edges = edge_map(crop, low=low, high=high, blur_slider=blur_slider)
+            if filter_mode:
+                edges = filter_edges_by_centroid_distance(
+                    edges,
+                    min_radius_pct=min_radius_pct,
+                    max_radius_pct=max_radius_pct,
+                    min_component_area=min_component_area,
+                )
+            tile = annotate_tile(crop, edges, label=f"c{c} r{r}")
+
+            y1 = tile_gap + r * (tile_h + tile_gap)
+            x1 = tile_gap + c * (tile_w + tile_gap)
+            canvas[y1:y1 + tile_h, x1:x1 + tile_w] = tile
+
+    return canvas
+
+
+def stack_left_right(left: np.ndarray, right: np.ndarray, divider: int = 12) -> np.ndarray:
+    h = max(left.shape[0], right.shape[0])
+    if left.shape[0] != h:
+        left = cv2.copyMakeBorder(left, 0, h - left.shape[0], 0, 0, cv2.BORDER_CONSTANT, value=(20, 20, 20))
+    if right.shape[0] != h:
+        right = cv2.copyMakeBorder(right, 0, h - right.shape[0], 0, 0, cv2.BORDER_CONSTANT, value=(20, 20, 20))
+
+    split = np.full((h, divider, 3), 8, dtype=np.uint8)
+    out = cv2.hconcat([left, split, right])
+
+    cv2.rectangle(out, (0, 0), (out.shape[1], 32), (0, 0, 0), -1)
+    cv2.putText(out, "LEFT: raw edges", (10, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 255), 2, cv2.LINE_AA)
+    cv2.putText(out, "RIGHT: centroid-distance filtered edges", (out.shape[1] // 2 + 10, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 255), 2, cv2.LINE_AA)
+    return out
+
+
+def add_footer(
+    img: np.ndarray,
+    low: int,
+    high: int,
+    blur_slider: int,
+    min_radius_pct: int,
+    max_radius_pct: int,
+    min_component_area: int,
+) -> np.ndarray:
+    out = img.copy()
+    footer_h = 44
+    canvas = np.full((out.shape[0] + footer_h, out.shape[1], 3), 20, dtype=np.uint8)
+    canvas[: out.shape[0], :] = out
+
+    text = (
+        f"low={low} high={high} blur_k={odd_kernel_from_slider(blur_slider)}  "
+        f"min_r%={min_radius_pct} max_r%={max_radius_pct} min_area={min_component_area}  "
+        "r=recapture s=save q/esc=quit"
+    )
+    cv2.putText(canvas, text, (10, out.shape[0] + 29), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (0, 255, 255), 2, cv2.LINE_AA)
+    return canvas
+
+
+def main() -> None:
+    args = parse_args()
+    cfg = load_config(args.config)
+    slot_boxes: List[List[Dict[str, int]]] = cfg["slot_boxes"]
+    if not slot_boxes or not slot_boxes[0]:
+        raise ValueError("Config slot_boxes is empty.")
+
+    seed = load_optional_json(args.params)
+
+    low_seed = int(seed.get("low_threshold", 60))
+    high_seed = int(seed.get("high_threshold", 180))
+    blur_seed = int(seed.get("blur_slider", 1))
+
+    controls_win = "Controls"
+    view_win = "Edge Compare: Raw vs Centroid Filter"
+
+    cv2.namedWindow(controls_win, cv2.WINDOW_NORMAL)
+    cv2.namedWindow(view_win, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(view_win, 1800, 950)
+
+    cv2.createTrackbar("low_threshold", controls_win, max(0, min(255, low_seed)), 255, lambda _v: None)
+    cv2.createTrackbar("high_threshold", controls_win, max(0, min(255, high_seed)), 255, lambda _v: None)
+    cv2.createTrackbar("blur", controls_win, max(0, min(12, blur_seed)), 12, lambda _v: None)
+
+    cv2.createTrackbar("min_radius_pct", controls_win, 0, 100, lambda _v: None)
+    cv2.createTrackbar("max_radius_pct", controls_win, 100, 100, lambda _v: None)
+    cv2.createTrackbar("min_component_area", controls_win, 0, 200, lambda _v: None)
+    cv2.createTrackbar("view_scale_pct", controls_win, 100, 220, lambda _v: None)
+
+    _ensure_exapunks_fullscreen()
+    print("Capturing initial screenshot and slot crops...")
+    crops = capture_all_crops(slot_boxes)
+
+    while True:
+        low = cv2.getTrackbarPos("low_threshold", controls_win)
+        high = cv2.getTrackbarPos("high_threshold", controls_win)
+        blur_slider = cv2.getTrackbarPos("blur", controls_win)
+        min_radius_pct = cv2.getTrackbarPos("min_radius_pct", controls_win)
+        max_radius_pct = cv2.getTrackbarPos("max_radius_pct", controls_win)
+        min_component_area = cv2.getTrackbarPos("min_component_area", controls_win)
+        scale_pct = max(20, cv2.getTrackbarPos("view_scale_pct", controls_win))
+
+        if high <= low:
+            high = min(255, low + 1)
+        if max_radius_pct < min_radius_pct:
+            max_radius_pct = min_radius_pct
+
+        left = build_mosaic(
+            crops=crops,
+            low=low,
+            high=high,
+            blur_slider=blur_slider,
+            tile_gap=max(0, args.tile_gap),
+            filter_mode=False,
+            min_radius_pct=min_radius_pct,
+            max_radius_pct=max_radius_pct,
+            min_component_area=min_component_area,
+        )
+        right = build_mosaic(
+            crops=crops,
+            low=low,
+            high=high,
+            blur_slider=blur_slider,
+            tile_gap=max(0, args.tile_gap),
+            filter_mode=True,
+            min_radius_pct=min_radius_pct,
+            max_radius_pct=max_radius_pct,
+            min_component_area=min_component_area,
+        )
+
+        frame = stack_left_right(left, right)
+        frame = add_footer(
+            frame,
+            low=low,
+            high=high,
+            blur_slider=blur_slider,
+            min_radius_pct=min_radius_pct,
+            max_radius_pct=max_radius_pct,
+            min_component_area=min_component_area,
+        )
+
+        if scale_pct != 100:
+            w = int(frame.shape[1] * (scale_pct / 100.0))
+            h = int(frame.shape[0] * (scale_pct / 100.0))
+            frame = cv2.resize(frame, (max(1, w), max(1, h)), interpolation=cv2.INTER_AREA)
+
+        cv2.imshow(view_win, frame)
+        key = cv2.waitKey(20) & 0xFF
+
+        if key in (27, ord("q")):
+            break
+        if key == ord("r"):
+            _ensure_exapunks_fullscreen()
+            print("Recapturing screenshot and slot crops...")
+            crops = capture_all_crops(slot_boxes)
+        if key == ord("s"):
+            payload = {
+                "low_threshold": int(low),
+                "high_threshold": int(high),
+                "blur_slider": int(blur_slider),
+                "blur_kernel": int(odd_kernel_from_slider(blur_slider)),
+                "min_radius_pct": int(min_radius_pct),
+                "max_radius_pct": int(max_radius_pct),
+                "min_component_area": int(min_component_area),
+            }
+            print(f"Current parameters: {payload}")
+            if args.save_params is not None:
+                args.save_params.parent.mkdir(parents=True, exist_ok=True)
+                with args.save_params.open("w", encoding="utf-8") as f:
+                    json.dump(payload, f, indent=2)
+                print(f"Saved parameters to {args.save_params}")
+
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()
