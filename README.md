@@ -283,4 +283,4 @@ I still have some optimization ideas in mind:
   Out of every 100 plays, about 80% will fail because the bot is too fast. I can tune the wait parameters so to get the Goldilocks tune that is fast for moving the cards, but not so fast that the game does not register a movement.
 6. CNN's for pattern recognition
   I hate using deep learning as a silver bullet just as much as the next nerd guy, but I would like to do so just to see how much the performance drops.
-
+7. Solve the solitaire for Shenzen IO lol.
