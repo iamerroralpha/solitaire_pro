@@ -20,7 +20,9 @@ import argparse
 import contextlib
 import io
 import json
+import os
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, cast
 
@@ -103,6 +105,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run silently and headless for solver integration (no logs, no preview window).",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=os.cpu_count() or 4,
+        help="Number of threads for parallel slot processing. Default: CPU count.",
+    )
     return parser.parse_args()
 
 
@@ -147,6 +155,25 @@ def build_filtered_mask(crop: np.ndarray, params: Dict[str, int]) -> np.ndarray:
 
 def build_processed_mask(crop: np.ndarray, params: Dict[str, int]) -> np.ndarray:
     return trim_zero_borders(build_filtered_mask(crop, params))
+
+
+def process_slot(
+    crop: np.ndarray,
+    params: Dict[str, int],
+    refs: Dict[str, List[np.ndarray]],
+    radial_refs: Dict[str, List[np.ndarray]],
+    method: int,
+) -> Tuple[np.ndarray, Tuple[Optional[str], float, str, Optional[str], str], int]:
+    """Run the full CV pipeline for a single slot crop.
+
+    Returns (processed_mask, prediction_tuple, red_pixels) where
+    prediction_tuple is (final_pred, score, mname, shape_pred, color_name).
+    """
+    full_mask = build_filtered_mask(crop, params)
+    mask = trim_zero_borders(full_mask)
+    shape_pred, score, mname = predict(mask, refs, radial_refs, method=method)
+    final_pred, color_name, red_pixels = finalize_prediction(shape_pred, crop, full_mask)
+    return mask, (final_pred, score, mname, shape_pred, color_name), red_pixels
 
 
 def detect_red_presence(crop: np.ndarray, mask: np.ndarray) -> Tuple[bool, int]:
@@ -620,21 +647,38 @@ def main() -> None:
         print("Capturing screenshot and processing slots...")
     crops = capture_all_crops(slot_boxes)
 
-    # Build processed masks and run matching.
+    # Build processed masks and run matching — parallelised across slots.
     processed_grid: List[List[np.ndarray]] = []
     predictions: List[List[Tuple[Optional[str], float, str, Optional[str], str]]] = []
 
     cols = len(crops)
+    # Flatten (col, row) indices so we can submit all slots to the thread pool.
+    slot_indices: List[Tuple[int, int]] = [
+        (c, r) for c in range(cols) for r in range(len(crops[c]))
+    ]
+
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        futures = {
+            (c, r): pool.submit(
+                process_slot,
+                crops[c][r],
+                params,
+                refs,
+                radial_refs,
+                args.method,
+            )
+            for c, r in slot_indices
+        }
+
+    # Reassemble results in original column/row order.
     for c in range(cols):
         col_processed = []
         col_preds = []
         for r in range(len(crops[c])):
-            full_mask = build_filtered_mask(crops[c][r], params)
-            mask = trim_zero_borders(full_mask)
-            shape_pred, score, mname = predict(mask, refs, radial_refs, method=args.method)
-            final_pred, color_name, red_pixels = finalize_prediction(shape_pred, crops[c][r], full_mask)
+            mask, pred_tuple, red_pixels = futures[(c, r)].result()
+            final_pred, score, mname, shape_pred, color_name = pred_tuple
             col_processed.append(mask)
-            col_preds.append((final_pred, score, mname, shape_pred, color_name))
+            col_preds.append(pred_tuple)
 
             if verbose:
                 print(

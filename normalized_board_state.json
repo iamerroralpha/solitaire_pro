@@ -16,8 +16,8 @@
   "columns": [
     [
       {
-        "label": "9b",
-        "rank": "9",
+        "label": "6b",
+        "rank": "6",
         "suit": "?",
         "color": "black",
         "screen_position": {
@@ -32,9 +32,9 @@
         }
       },
       {
-        "label": "fs",
+        "label": "fc",
         "rank": "F",
-        "suit": "s",
+        "suit": "c",
         "color": "black",
         "screen_position": {
           "x": 366,
@@ -48,10 +48,10 @@
         }
       },
       {
-        "label": "7b",
-        "rank": "7",
-        "suit": "?",
-        "color": "black",
+        "label": "fd",
+        "rank": "F",
+        "suit": "d",
+        "color": "red",
         "screen_position": {
           "x": 366,
           "y": 521,
@@ -64,10 +64,10 @@
         }
       },
       {
-        "label": "7r",
-        "rank": "7",
+        "label": "8b",
+        "rank": "8",
         "suit": "?",
-        "color": "red",
+        "color": "black",
         "screen_position": {
           "x": 366,
           "y": 550,
@@ -82,10 +82,10 @@
     ],
     [
       {
-        "label": "fs",
-        "rank": "F",
-        "suit": "s",
-        "color": "black",
+        "label": "6r",
+        "rank": "6",
+        "suit": "?",
+        "color": "red",
         "screen_position": {
           "x": 500,
           "y": 463,
@@ -95,6 +95,22 @@
         "board_position": {
           "col": 1,
           "row": 0
+        }
+      },
+      {
+        "label": "fc",
+        "rank": "F",
+        "suit": "c",
+        "color": "black",
+        "screen_position": {
+          "x": 500,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 1,
+          "row": 1
         }
       },
       {
@@ -104,22 +120,6 @@
         "color": "red",
         "screen_position": {
           "x": 500,
-          "y": 492,
-          "w": 29,
-          "h": 24
-        },
-        "board_position": {
-          "col": 1,
-          "row": 1
-        }
-      },
-      {
-        "label": "7r",
-        "rank": "7",
-        "suit": "?",
-        "color": "red",
-        "screen_position": {
-          "x": 500,
           "y": 521,
           "w": 29,
           "h": 24
@@ -130,10 +130,10 @@
         }
       },
       {
-        "label": "8r",
-        "rank": "8",
+        "label": "6b",
+        "rank": "6",
         "suit": "?",
-        "color": "red",
+        "color": "black",
         "screen_position": {
           "x": 500,
           "y": 550,
@@ -148,9 +148,9 @@
     ],
     [
       {
-        "label": "fd",
-        "rank": "F",
-        "suit": "d",
+        "label": "7r",
+        "rank": "7",
+        "suit": "?",
         "color": "red",
         "screen_position": {
           "x": 634,
@@ -180,10 +180,10 @@
         }
       },
       {
-        "label": "fc",
-        "rank": "F",
-        "suit": "c",
-        "color": "black",
+        "label": "8r",
+        "rank": "8",
+        "suit": "?",
+        "color": "red",
         "screen_position": {
           "x": 634,
           "y": 521,
@@ -214,10 +214,10 @@
     ],
     [
       {
-        "label": "10r",
-        "rank": "10",
+        "label": "7b",
+        "rank": "7",
         "suit": "?",
-        "color": "red",
+        "color": "black",
         "screen_position": {
           "x": 768,
           "y": 463,
@@ -230,10 +230,10 @@
         }
       },
       {
-        "label": "fh",
-        "rank": "F",
-        "suit": "h",
-        "color": "red",
+        "label": "7b",
+        "rank": "7",
+        "suit": "?",
+        "color": "black",
         "screen_position": {
           "x": 768,
           "y": 492,
@@ -246,9 +246,9 @@
         }
       },
       {
-        "label": "fc",
-        "rank": "F",
-        "suit": "c",
+        "label": "9b",
+        "rank": "9",
+        "suit": "?",
         "color": "black",
         "screen_position": {
           "x": 768,
@@ -262,10 +262,10 @@
         }
       },
       {
-        "label": "8b",
-        "rank": "8",
-        "suit": "?",
-        "color": "black",
+        "label": "fd",
+        "rank": "F",
+        "suit": "d",
+        "color": "red",
         "screen_position": {
           "x": 768,
           "y": 550,
@@ -280,9 +280,9 @@
     ],
     [
       {
-        "label": "fc",
+        "label": "fs",
         "rank": "F",
-        "suit": "c",
+        "suit": "s",
         "color": "black",
         "screen_position": {
           "x": 902,
@@ -296,10 +296,10 @@
         }
       },
       {
-        "label": "10b",
+        "label": "10r",
         "rank": "10",
         "suit": "?",
-        "color": "black",
+        "color": "red",
         "screen_position": {
           "x": 902,
           "y": 492,
@@ -309,6 +309,22 @@
         "board_position": {
           "col": 4,
           "row": 1
+        }
+      },
+      {
+        "label": "fc",
+        "rank": "F",
+        "suit": "c",
+        "color": "black",
+        "screen_position": {
+          "x": 902,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 4,
+          "row": 2
         }
       },
       {
@@ -318,22 +334,6 @@
         "color": "black",
         "screen_position": {
           "x": 902,
-          "y": 521,
-          "w": 29,
-          "h": 24
-        },
-        "board_position": {
-          "col": 4,
-          "row": 2
-        }
-      },
-      {
-        "label": "6b",
-        "rank": "6",
-        "suit": "?",
-        "color": "black",
-        "screen_position": {
-          "x": 902,
           "y": 550,
           "w": 29,
           "h": 24
@@ -346,10 +346,10 @@
     ],
     [
       {
-        "label": "fh",
+        "label": "fs",
         "rank": "F",
-        "suit": "h",
-        "color": "red",
+        "suit": "s",
+        "color": "black",
         "screen_position": {
           "x": 1036,
           "y": 463,
@@ -375,88 +375,6 @@
         "board_position": {
           "col": 5,
           "row": 1
-        }
-      },
-      {
-        "label": "fs",
-        "rank": "F",
-        "suit": "s",
-        "color": "black",
-        "screen_position": {
-          "x": 1036,
-          "y": 521,
-          "w": 29,
-          "h": 24
-        },
-        "board_position": {
-          "col": 5,
-          "row": 2
-        }
-      },
-      {
-        "label": "10r",
-        "rank": "10",
-        "suit": "?",
-        "color": "red",
-        "screen_position": {
-          "x": 1036,
-          "y": 550,
-          "w": 29,
-          "h": 24
-        },
-        "board_position": {
-          "col": 5,
-          "row": 3
-        }
-      }
-    ],
-    [
-      {
-        "label": "7b",
-        "rank": "7",
-        "suit": "?",
-        "color": "black",
-        "screen_position": {
-          "x": 1170,
-          "y": 463,
-          "w": 29,
-          "h": 24
-        },
-        "board_position": {
-          "col": 6,
-          "row": 0
-        }
-      },
-      {
-        "label": "10b",
-        "rank": "10",
-        "suit": "?",
-        "color": "black",
-        "screen_position": {
-          "x": 1170,
-          "y": 492,
-          "w": 29,
-          "h": 24
-        },
-        "board_position": {
-          "col": 6,
-          "row": 1
-        }
-      },
-      {
-        "label": "6b",
-        "rank": "6",
-        "suit": "?",
-        "color": "black",
-        "screen_position": {
-          "x": 1170,
-          "y": 521,
-          "w": 29,
-          "h": 24
-        },
-        "board_position": {
-          "col": 6,
-          "row": 2
         }
       },
       {
@@ -465,6 +383,88 @@
         "suit": "?",
         "color": "red",
         "screen_position": {
+          "x": 1036,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 5,
+          "row": 2
+        }
+      },
+      {
+        "label": "fh",
+        "rank": "F",
+        "suit": "h",
+        "color": "red",
+        "screen_position": {
+          "x": 1036,
+          "y": 550,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 5,
+          "row": 3
+        }
+      }
+    ],
+    [
+      {
+        "label": "fc",
+        "rank": "F",
+        "suit": "c",
+        "color": "black",
+        "screen_position": {
+          "x": 1170,
+          "y": 463,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 6,
+          "row": 0
+        }
+      },
+      {
+        "label": "fh",
+        "rank": "F",
+        "suit": "h",
+        "color": "red",
+        "screen_position": {
+          "x": 1170,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 6,
+          "row": 1
+        }
+      },
+      {
+        "label": "9r",
+        "rank": "9",
+        "suit": "?",
+        "color": "red",
+        "screen_position": {
+          "x": 1170,
+          "y": 521,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 6,
+          "row": 2
+        }
+      },
+      {
+        "label": "fd",
+        "rank": "F",
+        "suit": "d",
+        "color": "red",
+        "screen_position": {
           "x": 1170,
           "y": 550,
           "w": 29,
@@ -478,9 +478,9 @@
     ],
     [
       {
-        "label": "fd",
+        "label": "fh",
         "rank": "F",
-        "suit": "d",
+        "suit": "h",
         "color": "red",
         "screen_position": {
           "x": 1304,
@@ -494,8 +494,8 @@
         }
       },
       {
-        "label": "9r",
-        "rank": "9",
+        "label": "10r",
+        "rank": "10",
         "suit": "?",
         "color": "red",
         "screen_position": {
@@ -526,10 +526,10 @@
         }
       },
       {
-        "label": "fd",
-        "rank": "F",
-        "suit": "d",
-        "color": "red",
+        "label": "10b",
+        "rank": "10",
+        "suit": "?",
+        "color": "black",
         "screen_position": {
           "x": 1304,
           "y": 550,
@@ -544,10 +544,10 @@
     ],
     [
       {
-        "label": "6r",
-        "rank": "6",
-        "suit": "?",
-        "color": "red",
+        "label": "fs",
+        "rank": "F",
+        "suit": "s",
+        "color": "black",
         "screen_position": {
           "x": 1438,
           "y": 463,
@@ -557,6 +557,22 @@
         "board_position": {
           "col": 8,
           "row": 0
+        }
+      },
+      {
+        "label": "10b",
+        "rank": "10",
+        "suit": "?",
+        "color": "black",
+        "screen_position": {
+          "x": 1438,
+          "y": 492,
+          "w": 29,
+          "h": 24
+        },
+        "board_position": {
+          "col": 8,
+          "row": 1
         }
       },
       {
@@ -566,22 +582,6 @@
         "color": "black",
         "screen_position": {
           "x": 1438,
-          "y": 492,
-          "w": 29,
-          "h": 24
-        },
-        "board_position": {
-          "col": 8,
-          "row": 1
-        }
-      },
-      {
-        "label": "fc",
-        "rank": "F",
-        "suit": "c",
-        "color": "black",
-        "screen_position": {
-          "x": 1438,
           "y": 521,
           "w": 29,
           "h": 24
@@ -592,9 +592,9 @@
         }
       },
       {
-        "label": "fh",
-        "rank": "F",
-        "suit": "h",
+        "label": "7r",
+        "rank": "7",
+        "suit": "?",
         "color": "red",
         "screen_position": {
           "x": 1438,
