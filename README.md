@@ -2,6 +2,8 @@
 
 This project detects the EXAPUNKS solitaire board from screen capture, solves it, and executes the moves with mouse automation. The automation is Mac specific but should work fine with a couple tweaks.
 
+![Demo](assets/demo.gif)
+
 ## Preface
 
 I am an adict of Zachtronics games, and recently I got EXAPUNKS on Steam sale. There is a level on this game where ypu can just play a variation of solitarie. After beating the game for a couple times, I could just move forward, but  instead of just continuing to play the game, I took the sane decision of building this program to chase the 1.5% achievement for 100 solitaire wins.
