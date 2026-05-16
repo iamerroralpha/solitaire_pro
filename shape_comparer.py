@@ -21,6 +21,7 @@ import contextlib
 import io
 import json
 import os
+import time
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -110,6 +111,16 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=os.cpu_count() or 4,
         help="Number of threads for parallel slot processing. Default: CPU count.",
+    )
+    parser.add_argument(
+        "--no-threading",
+        action="store_true",
+        help="Disable multithreading and process slots serially (useful for comparison).",
+    )
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Run both serial and parallel passes and print a timing comparison.",
     )
     return parser.parse_args()
 
@@ -647,47 +658,107 @@ def main() -> None:
         print("Capturing screenshot and processing slots...")
     crops = capture_all_crops(slot_boxes)
 
-    # Build processed masks and run matching — parallelised across slots.
-    processed_grid: List[List[np.ndarray]] = []
-    predictions: List[List[Tuple[Optional[str], float, str, Optional[str], str]]] = []
-
+    # Build processed masks and run matching.
     cols = len(crops)
-    # Flatten (col, row) indices so we can submit all slots to the thread pool.
     slot_indices: List[Tuple[int, int]] = [
         (c, r) for c in range(cols) for r in range(len(crops[c]))
     ]
+    n_slots = len(slot_indices)
 
-    with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        futures = {
-            (c, r): pool.submit(
-                process_slot,
-                crops[c][r],
-                params,
-                refs,
-                radial_refs,
-                args.method,
-            )
-            for c, r in slot_indices
-        }
+    def _run_serial() -> Tuple[List[List[np.ndarray]], List[List[Tuple[Optional[str], float, str, Optional[str], str]]]]:
+        pg: List[List[np.ndarray]] = []
+        pr: List[List[Tuple[Optional[str], float, str, Optional[str], str]]] = []
+        for c in range(cols):
+            col_processed = []
+            col_preds = []
+            for r in range(len(crops[c])):
+                mask, pred_tuple, _red = process_slot(crops[c][r], params, refs, radial_refs, args.method)
+                col_processed.append(mask)
+                col_preds.append(pred_tuple)
+            pg.append(col_processed)
+            pr.append(col_preds)
+        return pg, pr
 
-    # Reassemble results in original column/row order.
-    for c in range(cols):
-        col_processed = []
-        col_preds = []
-        for r in range(len(crops[c])):
-            mask, pred_tuple, red_pixels = futures[(c, r)].result()
-            final_pred, score, mname, shape_pred, color_name = pred_tuple
-            col_processed.append(mask)
-            col_preds.append(pred_tuple)
+    def _run_parallel() -> Tuple[List[List[np.ndarray]], List[List[Tuple[Optional[str], float, str, Optional[str], str]]]]:
+        # Chunk slots so each thread handles several slots rather than one.
+        # This amortises thread-pool overhead over a meaningful block of work,
+        # which is critical when individual tasks are <5 ms.
+        n_workers = min(args.workers, n_slots)
+        chunk_size = max(1, (n_slots + n_workers - 1) // n_workers)
+        chunks = [slot_indices[i:i + chunk_size] for i in range(0, n_slots, chunk_size)]
 
-            if verbose:
+        def _process_chunk(
+            indices: List[Tuple[int, int]],
+        ) -> List[Tuple[int, int, np.ndarray, Tuple[Optional[str], float, str, Optional[str], str]]]:
+            out = []
+            for c, r in indices:
+                mask, pred_tuple, _red = process_slot(crops[c][r], params, refs, radial_refs, args.method)
+                out.append((c, r, mask, pred_tuple))
+            return out
+
+        results: Dict[Tuple[int, int], Tuple[np.ndarray, Tuple[Optional[str], float, str, Optional[str], str]]] = {}
+        with ThreadPoolExecutor(max_workers=n_workers) as pool:
+            for chunk_result in pool.map(_process_chunk, chunks):
+                for c, r, mask, pred_tuple in chunk_result:
+                    results[(c, r)] = (mask, pred_tuple)
+
+        pg: List[List[np.ndarray]] = []
+        pr: List[List[Tuple[Optional[str], float, str, Optional[str], str]]] = []
+        for c in range(cols):
+            col_processed = []
+            col_preds = []
+            for r in range(len(crops[c])):
+                mask, pred_tuple = results[(c, r)]
+                col_processed.append(mask)
+                col_preds.append(pred_tuple)
+            pg.append(col_processed)
+            pr.append(col_preds)
+        return pg, pr
+
+    if args.benchmark:
+        if verbose:
+            print(f"Benchmark mode: running both serial and parallel passes ({n_slots} slots, {args.workers} workers)...")
+        t0 = time.perf_counter()
+        processed_grid, predictions = _run_serial()
+        serial_elapsed = time.perf_counter() - t0
+
+        t0 = time.perf_counter()
+        processed_grid, predictions = _run_parallel()
+        parallel_elapsed = time.perf_counter() - t0
+
+        speedup = serial_elapsed / parallel_elapsed if parallel_elapsed > 0 else float("inf")
+        print(
+            f"\nTiming comparison ({n_slots} slots):\n"
+            f"  Serial:   {serial_elapsed * 1000:.1f} ms\n"
+            f"  Parallel: {parallel_elapsed * 1000:.1f} ms  ({args.workers} workers)\n"
+            f"  Speedup:  {speedup:.2f}x"
+        )
+    elif args.no_threading:
+        if verbose:
+            print(f"Processing {n_slots} slots serially...")
+        t0 = time.perf_counter()
+        processed_grid, predictions = _run_serial()
+        elapsed = time.perf_counter() - t0
+        if verbose:
+            print(f"Serial processing done in {elapsed * 1000:.1f} ms")
+    else:
+        if verbose:
+            print(f"Processing {n_slots} slots in parallel ({args.workers} workers)...")
+        t0 = time.perf_counter()
+        processed_grid, predictions = _run_parallel()
+        elapsed = time.perf_counter() - t0
+        if verbose:
+            print(f"Parallel processing done in {elapsed * 1000:.1f} ms")
+
+    # Log per-slot results after processing.
+    if verbose:
+        for c in range(cols):
+            for r in range(len(crops[c])):
+                final_pred, score, mname, shape_pred, color_name = predictions[c][r]
                 print(
                     f"  slot c{c} r{r}: shape={shape_pred}  final={final_pred}  "
-                    f"color={color_name}  red_pixels={red_pixels}  method={mname}  score={score:.4f}"
+                    f"color={color_name}  method={mname}  score={score:.4f}"
                 )
-
-        processed_grid.append(col_processed)
-        predictions.append(col_preds)
 
     print_sanity_check(predictions, verbose=verbose)
     export_normalized_board_state(cfg, slot_boxes, predictions, args.state_out, verbose=verbose)
