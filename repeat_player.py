@@ -3,8 +3,8 @@
 
 Flow per round:
 1) Click New Game button (calibrate if missing)
-2) Wait for the deal animation to complete using screen-diff stability on board area
-3) Run solver (which refreshes board state via shape_comparer)
+2) Repeatedly run shape_comparer until produced state looks coherent
+3) Run solver in no-refresh mode using that coherent state
 4) Execute planned moves
 5) Repeat
 
@@ -14,8 +14,11 @@ ESC can be used at any time to stop after the current action.
 from __future__ import annotations
 
 import argparse
+import subprocess
+import sys
 import json
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Tuple
@@ -38,6 +41,7 @@ except ImportError:
     raise SystemExit(1)
 
 from calibrate import _ensure_exapunks_fullscreen
+from card_encoding import FACE_LABELS, NUMBERED_LABELS
 from executor import (
     _STOP,
     _start_esc_listener,
@@ -54,6 +58,7 @@ DEFAULT_CONFIG = Path("board_config.json")
 DEFAULT_PLAN = Path("planned_moves.json")
 DEFAULT_SOLVER = Path("solver.py")
 DEFAULT_STATE = Path("normalized_board_state.json")
+DEFAULT_SHAPE_COMPARER = Path("shape_comparer.py")
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,6 +66,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     p.add_argument("--plan", type=Path, default=DEFAULT_PLAN)
     p.add_argument("--solver", type=Path, default=DEFAULT_SOLVER)
+    p.add_argument("--shape-comparer", type=Path, default=DEFAULT_SHAPE_COMPARER)
     p.add_argument("--state", type=Path, default=DEFAULT_STATE)
 
     # Execution timing (mirrors executor defaults).
@@ -71,7 +77,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--approach-delay", type=float, default=0.01)
     p.add_argument("--focus-delay", type=float, default=0.01)
 
-    # New game + animation timing.
+    # New game + vision polling timing.
     p.add_argument("--new-game-clicks", type=int, default=1,
                    help="How many clicks to send to New Game each round (default 1).")
     p.add_argument("--new-game-hold", type=float, default=0.03,
@@ -79,11 +85,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--new-game-between", type=float, default=0.06,
                    help="Seconds between repeated New Game clicks (default 0.06).")
     p.add_argument("--animation-start-delay", type=float, default=1.0,
-                   help="Seconds to wait before checking board movement (default 1.0).")
+                   help="Seconds to wait before first shape_comparer attempt (default 1.0).")
     p.add_argument("--animation-max-wait", type=float, default=8.0,
-                   help="Max seconds to wait for board animation settle (default 8.0).")
+                   help="Max seconds to wait for a coherent vision state (default 8.0).")
     p.add_argument("--sample-interval", type=float, default=0.05,
-                   help="Seconds between board samples while waiting (default 0.05).")
+                   help="Seconds between shape_comparer retries while waiting (default 0.05).")
     p.add_argument("--stable-frames", type=int, default=4,
                    help="Consecutive low-diff frames required for settle (default 4).")
     p.add_argument("--diff-threshold", type=float, default=1.2,
@@ -220,47 +226,105 @@ def click_new_game(
             time.sleep(max(0.0, between_s))
 
 
-def wait_for_board_settle(
-    cfg: Dict,
+def _run_shape_comparer(shape_comparer: Path, state_path: Path) -> None:
+    if not shape_comparer.exists():
+        raise FileNotFoundError(f"shape_comparer.py not found: {shape_comparer}")
+    subprocess.run(
+        [
+            sys.executable,
+            str(shape_comparer),
+            "--solver-mode",
+            "--state-out",
+            str(state_path),
+        ],
+        check=True,
+    )
+
+
+def _state_looks_sane(state_path: Path) -> Tuple[bool, str]:
+    if not state_path.exists():
+        return False, "state file not created"
+
+    try:
+        with state_path.open("r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return False, "state file unreadable"
+
+    columns = raw.get("columns")
+    if not isinstance(columns, list) or len(columns) != 9:
+        return False, "invalid columns layout"
+
+    holder = raw.get("holder")
+    holder_card = holder.get("card") if isinstance(holder, dict) else None
+    if holder_card is not None:
+        return False, "holder not empty"
+
+    labels = []
+    for col in columns:
+        if not isinstance(col, list):
+            return False, "column is not a list"
+        for card in col:
+            if not isinstance(card, dict):
+                return False, "malformed card object"
+            lbl = card.get("label")
+            if not isinstance(lbl, str):
+                return False, "missing card label"
+            labels.append(lbl)
+
+    if len(labels) != 36:
+        return False, f"expected 36 cards, got {len(labels)}"
+
+    counts = Counter(labels)
+    for lbl in FACE_LABELS:
+        if counts.get(lbl, 0) != 4:
+            return False, f"bad count for {lbl}: {counts.get(lbl, 0)}"
+    for lbl in NUMBERED_LABELS:
+        if counts.get(lbl, 0) != 2:
+            return False, f"bad count for {lbl}: {counts.get(lbl, 0)}"
+
+    return True, "ok"
+
+
+def wait_for_vision_ready(
+    shape_comparer: Path,
+    state_path: Path,
     start_delay: float,
     max_wait: float,
-    sample_interval: float,
-    stable_frames: int,
-    diff_threshold: float,
+    retry_delay: float,
     dry_run: bool,
 ) -> None:
-    """Wait until board animation appears stable using frame diffs over board_rect."""
+    """Poll shape_comparer until generated state passes sanity checks."""
     if dry_run:
         print(
-            "[DRY] Wait for settle "
-            f"start={start_delay}s max={max_wait}s sample={sample_interval}s "
-            f"stable_frames={stable_frames} diff_th={diff_threshold}"
+            "[DRY] Vision-ready wait "
+            f"start={start_delay}s max={max_wait}s retry={retry_delay}s"
         )
         return
 
     time.sleep(max(0.0, start_delay))
     deadline = time.time() + max(0.1, max_wait)
-
-    prev = cv2.cvtColor(_board_crop(_grab_screen_bgr(), cfg), cv2.COLOR_BGR2GRAY)
-    stable_count = 0
-    seen_motion = False
+    attempts = 0
+    last_reason = "no attempt"
 
     while time.time() < deadline and not _STOP.is_set():
-        time.sleep(max(0.005, sample_interval))
-        cur = cv2.cvtColor(_board_crop(_grab_screen_bgr(), cfg), cv2.COLOR_BGR2GRAY)
-        diff = float(np.mean(cv2.absdiff(prev, cur)))
-        prev = cur
-
-        if diff > diff_threshold:
-            seen_motion = True
-            stable_count = 0
+        attempts += 1
+        try:
+            _run_shape_comparer(shape_comparer, state_path)
+        except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+            last_reason = f"shape_comparer failed: {exc}"
         else:
-            stable_count += 1
+            ok, reason = _state_looks_sane(state_path)
+            if ok:
+                print(f"Vision-ready state accepted after {attempts} attempt(s).")
+                return
+            last_reason = reason
 
-        if seen_motion and stable_count >= max(1, stable_frames):
-            return
+        time.sleep(max(0.01, retry_delay))
 
-    # Fall through on timeout: continue pipeline instead of hard failing.
+    raise RuntimeError(
+        f"Timed out waiting for vision-ready state after {attempts} attempts ({last_reason})."
+    )
 
 
 def ensure_calibration(cfg: Dict, args: argparse.Namespace) -> Dict:
@@ -274,10 +338,6 @@ def ensure_calibration(cfg: Dict, args: argparse.Namespace) -> Dict:
         cfg = calibrate_holder(cfg, args.config)
     if needs_new_game:
         cfg = calibrate_new_game_button(cfg, args.config)
-
-    # Board rect is required for settle detection.
-    if "board_rect" not in cfg:
-        raise RuntimeError("board_config.json missing board_rect; run calibrate.py first.")
 
     return cfg
 
@@ -325,23 +385,26 @@ def play_round(round_idx: int, cfg: Dict, args: argparse.Namespace) -> Dict[str,
     if _STOP.is_set():
         return result("aborted")
 
-    print("Waiting for deal animation to settle...")
-    wait_for_board_settle(
-        cfg=cfg,
-        start_delay=args.animation_start_delay,
-        max_wait=args.animation_max_wait,
-        sample_interval=args.sample_interval,
-        stable_frames=args.stable_frames,
-        diff_threshold=args.diff_threshold,
-        dry_run=args.dry_run,
-    )
+    print("Waiting for coherent vision state...")
+    try:
+        wait_for_vision_ready(
+            shape_comparer=args.shape_comparer,
+            state_path=args.state,
+            start_delay=args.animation_start_delay,
+            max_wait=args.animation_max_wait,
+            retry_delay=args.sample_interval,
+            dry_run=args.dry_run,
+        )
+    except RuntimeError as exc:
+        print(f"Vision readiness failed this round: {exc}")
+        return result("solver_fail", error=str(exc))
 
     if _STOP.is_set():
         return result("aborted")
 
-    print("Running solver...")
+    print("Running solver (no refresh)...")
     try:
-        run_solver(args.solver, args.plan)
+        run_solver(args.solver, args.plan, no_refresh=True)
     except (FileNotFoundError, RuntimeError) as exc:
         print(f"Solver failed this round: {exc}")
         return result("solver_fail", error=str(exc))

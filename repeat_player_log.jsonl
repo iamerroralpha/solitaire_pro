@@ -117,3 +117,11 @@
 {"ts_utc": "2026-05-16T01:46:37.664572+00:00", "round": 1, "status": "solved", "duration_s": 30.5673, "planned_moves": 34, "completed_moves": 34, "dry_run": false, "error": ""}
 {"ts_utc": "2026-05-16T01:47:08.458621+00:00", "round": 2, "status": "solved", "duration_s": 30.7918, "planned_moves": 35, "completed_moves": 35, "dry_run": false, "error": ""}
 {"ts_utc": "2026-05-16T01:47:10.265474+00:00", "round": 3, "status": "aborted", "duration_s": 1.8062, "planned_moves": 0, "completed_moves": 0, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-17T14:14:35.620564+00:00", "round": 1, "status": "solved", "duration_s": 29.3724, "planned_moves": 36, "completed_moves": 36, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-17T14:15:06.107627+00:00", "round": 2, "status": "solved", "duration_s": 30.4844, "planned_moves": 35, "completed_moves": 35, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-17T14:15:35.121197+00:00", "round": 3, "status": "solved", "duration_s": 29.0128, "planned_moves": 33, "completed_moves": 33, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-17T14:16:04.433337+00:00", "round": 4, "status": "solved", "duration_s": 29.3114, "planned_moves": 34, "completed_moves": 34, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-17T14:16:07.098466+00:00", "round": 5, "status": "solver_fail", "duration_s": 2.6644, "planned_moves": 0, "completed_moves": 0, "dry_run": false, "error": "Timed out waiting for vision-ready state after 0 attempts (no attempt)."}
+{"ts_utc": "2026-05-17T14:16:55.759031+00:00", "round": 1, "status": "solved", "duration_s": 30.4215, "planned_moves": 36, "completed_moves": 36, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-17T14:17:26.321482+00:00", "round": 2, "status": "solved", "duration_s": 30.5609, "planned_moves": 37, "completed_moves": 37, "dry_run": false, "error": ""}
+{"ts_utc": "2026-05-17T14:17:28.636063+00:00", "round": 3, "status": "aborted", "duration_s": 2.3135, "planned_moves": 0, "completed_moves": 0, "dry_run": false, "error": ""}

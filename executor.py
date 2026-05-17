@@ -256,14 +256,17 @@ def dest_pos(cfg: Dict, stack_index: int, stack_size: int) -> Tuple[int, int]:
 # Solver invocation
 # ---------------------------------------------------------------------------
 
-def run_solver(solver_path: Path, plan_path: Path) -> None:
+def run_solver(solver_path: Path, plan_path: Path, no_refresh: bool = False) -> None:
     if not solver_path.exists():
         raise FileNotFoundError(f"solver.py not found: {solver_path}")
 
-    print("Running solver (this also refreshes board state via shape_comparer)...")
+    mode_msg = "no refresh" if no_refresh else "with shape_comparer refresh"
+    print(f"Running solver ({mode_msg})...")
+    cmd = [sys.executable, str(solver_path), "--plan-out", str(plan_path)]
+    if no_refresh:
+        cmd.append("--no-refresh")
     try:
-        subprocess.run([sys.executable, str(solver_path), "--plan-out", str(plan_path)],
-                       check=True)
+        subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as exc:
         raise RuntimeError(f"Solver failed with exit code {exc.returncode}.") from exc
 

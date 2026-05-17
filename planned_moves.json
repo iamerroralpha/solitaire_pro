@@ -5,10 +5,136 @@
   "final_unfinished": 1,
   "planned_moves": [
     {
+      "source_stack": 7,
+      "target_stack": 9,
+      "move_count": 1,
+      "reason": "holder_store"
+    },
+    {
       "source_stack": 2,
-      "target_stack": 7,
+      "target_stack": 6,
       "move_count": 1,
       "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 2,
+      "target_stack": 5,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 6,
+      "target_stack": 5,
+      "move_count": 2,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 7,
+      "target_stack": 0,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 7,
+      "target_stack": 5,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 7,
+      "target_stack": 1,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 5,
+      "target_stack": 7,
+      "move_count": 5,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 4,
+      "target_stack": 8,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 5,
+      "target_stack": 3,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 6,
+      "target_stack": 4,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 6,
+      "target_stack": 3,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 6,
+      "target_stack": 8,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 5,
+      "target_stack": 6,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 1,
+      "target_stack": 5,
+      "move_count": 2,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 1,
+      "target_stack": 6,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 3,
+      "target_stack": 6,
+      "move_count": 3,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 9,
+      "target_stack": 1,
+      "move_count": 1,
+      "reason": "holder_release"
+    },
+    {
+      "source_stack": 0,
+      "target_stack": 3,
+      "move_count": 2,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 0,
+      "target_stack": 9,
+      "move_count": 1,
+      "reason": "holder_store"
+    },
+    {
+      "source_stack": 0,
+      "target_stack": 5,
+      "move_count": 1,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 9,
+      "target_stack": 0,
+      "move_count": 1,
+      "reason": "holder_release"
     },
     {
       "source_stack": 2,
@@ -18,212 +144,86 @@
     },
     {
       "source_stack": 2,
-      "target_stack": 7,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 1,
-      "target_stack": 2,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 2,
-      "target_stack": 7,
-      "move_count": 2,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 7,
-      "target_stack": 2,
-      "move_count": 5,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 1,
-      "target_stack": 5,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 3,
-      "target_stack": 6,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 6,
-      "target_stack": 7,
-      "move_count": 2,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 0,
-      "target_stack": 6,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 0,
-      "target_stack": 7,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 0,
       "target_stack": 1,
       "move_count": 1,
       "reason": "largest_suffix"
     },
     {
-      "source_stack": 0,
+      "source_stack": 4,
+      "target_stack": 2,
+      "move_count": 3,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 3,
+      "target_stack": 4,
+      "move_count": 3,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 3,
       "target_stack": 8,
       "move_count": 1,
       "reason": "largest_suffix"
     },
     {
-      "source_stack": 7,
+      "source_stack": 0,
+      "target_stack": 3,
+      "move_count": 2,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 8,
       "target_stack": 0,
       "move_count": 4,
       "reason": "largest_suffix"
     },
     {
       "source_stack": 8,
-      "target_stack": 6,
-      "move_count": 2,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 8,
-      "target_stack": 7,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 6,
-      "target_stack": 8,
-      "move_count": 4,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 6,
-      "target_stack": 5,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 6,
       "target_stack": 1,
       "move_count": 1,
       "reason": "largest_suffix"
     },
     {
-      "source_stack": 8,
-      "target_stack": 6,
-      "move_count": 5,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 8,
-      "target_stack": 4,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 7,
+      "source_stack": 2,
       "target_stack": 8,
-      "move_count": 2,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 5,
-      "target_stack": 7,
       "move_count": 3,
       "reason": "largest_suffix"
     },
     {
       "source_stack": 9,
-      "target_stack": 8,
+      "target_stack": 2,
       "move_count": 1,
       "reason": "holder_release"
     },
     {
-      "source_stack": 3,
+      "source_stack": 1,
+      "target_stack": 2,
+      "move_count": 4,
+      "reason": "largest_suffix"
+    },
+    {
+      "source_stack": 1,
       "target_stack": 9,
       "move_count": 1,
       "reason": "holder_store"
     },
     {
-      "source_stack": 3,
-      "target_stack": 5,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 3,
-      "target_stack": 8,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 1,
-      "target_stack": 3,
-      "move_count": 3,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 1,
-      "target_stack": 8,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 4,
+      "source_stack": 8,
       "target_stack": 1,
-      "move_count": 2,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 4,
-      "target_stack": 3,
-      "move_count": 1,
+      "move_count": 4,
       "reason": "largest_suffix"
     },
     {
       "source_stack": 9,
-      "target_stack": 4,
+      "target_stack": 8,
       "move_count": 1,
       "reason": "holder_release"
     },
     {
-      "source_stack": 5,
-      "target_stack": 4,
-      "move_count": 2,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 5,
-      "target_stack": 4,
-      "move_count": 1,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 1,
-      "target_stack": 5,
-      "move_count": 2,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 4,
-      "target_stack": 1,
-      "move_count": 5,
-      "reason": "largest_suffix"
-    },
-    {
-      "source_stack": 4,
-      "target_stack": 5,
-      "move_count": 1,
+      "source_stack": 3,
+      "target_stack": 8,
+      "move_count": 3,
       "reason": "largest_suffix"
     }
   ],
@@ -258,6 +258,32 @@
       ],
       [
         {
+          "rank": 12,
+          "suit": 3,
+          "color": "red",
+          "label": "fh"
+        },
+        {
+          "rank": 12,
+          "suit": 3,
+          "color": "red",
+          "label": "fh"
+        },
+        {
+          "rank": 12,
+          "suit": 3,
+          "color": "red",
+          "label": "fh"
+        },
+        {
+          "rank": 12,
+          "suit": 3,
+          "color": "red",
+          "label": "fh"
+        }
+      ],
+      [
+        {
           "rank": 10,
           "suit": 2,
           "color": "red",
@@ -286,64 +312,6 @@
           "suit": 2,
           "color": "red",
           "label": "6r"
-        }
-      ],
-      [
-        {
-          "rank": 10,
-          "suit": 0,
-          "color": "black",
-          "label": "10b"
-        },
-        {
-          "rank": 9,
-          "suit": 2,
-          "color": "red",
-          "label": "9r"
-        },
-        {
-          "rank": 8,
-          "suit": 0,
-          "color": "black",
-          "label": "8b"
-        },
-        {
-          "rank": 7,
-          "suit": 2,
-          "color": "red",
-          "label": "7r"
-        },
-        {
-          "rank": 6,
-          "suit": 0,
-          "color": "black",
-          "label": "6b"
-        }
-      ],
-      [
-        {
-          "rank": 12,
-          "suit": 0,
-          "color": "black",
-          "label": "fc"
-        },
-        {
-          "rank": 12,
-          "suit": 0,
-          "color": "black",
-          "label": "fc"
-        },
-        {
-          "rank": 12,
-          "suit": 0,
-          "color": "black",
-          "label": "fc"
-        },
-        {
-          "rank": 12,
-          "suit": 0,
-          "color": "black",
-          "label": "fc"
         }
       ],
       [],
@@ -375,60 +343,28 @@
       ],
       [
         {
-          "rank": 10,
+          "rank": 12,
           "suit": 0,
           "color": "black",
-          "label": "10b"
+          "label": "fc"
         },
         {
-          "rank": 9,
-          "suit": 2,
-          "color": "red",
-          "label": "9r"
-        },
-        {
-          "rank": 8,
+          "rank": 12,
           "suit": 0,
           "color": "black",
-          "label": "8b"
+          "label": "fc"
         },
         {
-          "rank": 7,
-          "suit": 2,
-          "color": "red",
-          "label": "7r"
-        },
-        {
-          "rank": 6,
+          "rank": 12,
           "suit": 0,
           "color": "black",
-          "label": "6b"
-        }
-      ],
-      [
-        {
-          "rank": 12,
-          "suit": 3,
-          "color": "red",
-          "label": "fh"
+          "label": "fc"
         },
         {
           "rank": 12,
-          "suit": 3,
-          "color": "red",
-          "label": "fh"
-        },
-        {
-          "rank": 12,
-          "suit": 3,
-          "color": "red",
-          "label": "fh"
-        },
-        {
-          "rank": 12,
-          "suit": 3,
-          "color": "red",
-          "label": "fh"
+          "suit": 0,
+          "color": "black",
+          "label": "fc"
         }
       ],
       [
@@ -461,6 +397,70 @@
           "suit": 2,
           "color": "red",
           "label": "6r"
+        }
+      ],
+      [
+        {
+          "rank": 10,
+          "suit": 0,
+          "color": "black",
+          "label": "10b"
+        },
+        {
+          "rank": 9,
+          "suit": 2,
+          "color": "red",
+          "label": "9r"
+        },
+        {
+          "rank": 8,
+          "suit": 0,
+          "color": "black",
+          "label": "8b"
+        },
+        {
+          "rank": 7,
+          "suit": 2,
+          "color": "red",
+          "label": "7r"
+        },
+        {
+          "rank": 6,
+          "suit": 0,
+          "color": "black",
+          "label": "6b"
+        }
+      ],
+      [
+        {
+          "rank": 10,
+          "suit": 0,
+          "color": "black",
+          "label": "10b"
+        },
+        {
+          "rank": 9,
+          "suit": 2,
+          "color": "red",
+          "label": "9r"
+        },
+        {
+          "rank": 8,
+          "suit": 0,
+          "color": "black",
+          "label": "8b"
+        },
+        {
+          "rank": 7,
+          "suit": 2,
+          "color": "red",
+          "label": "7r"
+        },
+        {
+          "rank": 6,
+          "suit": 0,
+          "color": "black",
+          "label": "6b"
         }
       ],
       []
