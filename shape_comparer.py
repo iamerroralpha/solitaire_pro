@@ -113,9 +113,9 @@ def parse_args() -> argparse.Namespace:
         help="Number of threads for parallel slot processing. Default: CPU count.",
     )
     parser.add_argument(
-        "--no-threading",
+        "--threading",
         action="store_true",
-        help="Disable multithreading and process slots serially (useful for comparison).",
+        help="Enable multithreaded slot processing (off by default).",
     )
     parser.add_argument(
         "--benchmark",
@@ -733,15 +733,7 @@ def main() -> None:
             f"  Parallel: {parallel_elapsed * 1000:.1f} ms  ({args.workers} workers)\n"
             f"  Speedup:  {speedup:.2f}x"
         )
-    elif args.no_threading:
-        if verbose:
-            print(f"Processing {n_slots} slots serially...")
-        t0 = time.perf_counter()
-        processed_grid, predictions = _run_serial()
-        elapsed = time.perf_counter() - t0
-        if verbose:
-            print(f"Serial processing done in {elapsed * 1000:.1f} ms")
-    else:
+    elif args.threading:
         if verbose:
             print(f"Processing {n_slots} slots in parallel ({args.workers} workers)...")
         t0 = time.perf_counter()
@@ -749,6 +741,14 @@ def main() -> None:
         elapsed = time.perf_counter() - t0
         if verbose:
             print(f"Parallel processing done in {elapsed * 1000:.1f} ms")
+    else:
+        if verbose:
+            print(f"Processing {n_slots} slots serially...")
+        t0 = time.perf_counter()
+        processed_grid, predictions = _run_serial()
+        elapsed = time.perf_counter() - t0
+        if verbose:
+            print(f"Serial processing done in {elapsed * 1000:.1f} ms")
 
     # Log per-slot results after processing.
     if verbose:

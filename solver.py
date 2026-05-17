@@ -16,8 +16,11 @@ from __future__ import annotations
 import argparse
 import heapq
 import json
+import os
 import subprocess
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -117,6 +120,27 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=200000,
         help="Safety cap on expanded states.",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=os.cpu_count() or 4,
+        help="Worker threads for parallel search. Default: CPU count.",
+    )
+    parser.add_argument(
+        "--parallel-search",
+        action="store_true",
+        help="Use parallel batch-expansion for the solver search.",
+    )
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Run both serial and parallel searches and print a timing comparison.",
+    )
+    parser.add_argument(
+        "--no-refresh",
+        action="store_true",
+        help="Skip shape_comparer refresh and solve from existing --state file only.",
     )
     return parser.parse_args()
 
@@ -401,6 +425,55 @@ def find_winning_moves(initial: State, max_expanded: int) -> List[Move]:
     raise SolverError("No winning path found")
 
 
+def find_winning_moves_parallel(initial: State, max_expanded: int, n_workers: int) -> List[Move]:
+    """Parallel best-first search: expand a batch of frontier states simultaneously.
+
+    Each iteration pops *n_workers* states from the frontier and expands them
+    concurrently. Results are merged back into the heap under a shared counter.
+    Note: for very fast per-state work (pure Python) this may be slower than
+    serial due to GIL contention — use --benchmark to measure on your board.
+    """
+    frontier: List[Tuple[int, int, int, State]] = []
+    seen = set()
+    counter = 0
+
+    prio = priority(initial)
+    heapq.heappush(frontier, (prio[0], prio[1], counter, initial))
+    seen.add(state_key(initial))
+
+    expanded = 0
+    batch_size = max(1, n_workers)
+
+    def _expand_one(s: State) -> List[State]:
+        children: List[State] = []
+        for move in generate_moves(s):
+            children.append(apply_move(s, move))
+        return children
+
+    with ThreadPoolExecutor(max_workers=n_workers) as pool:
+        while frontier and expanded < max_expanded:
+            batch: List[State] = []
+            for _ in range(min(batch_size, len(frontier))):
+                if frontier:
+                    batch.append(heapq.heappop(frontier)[3])
+
+            for children in pool.map(_expand_one, batch):
+                for s2 in children:
+                    key = state_key(s2)
+                    if key in seen:
+                        continue
+                    if count_unfinished(s2) == 1:
+                        return s2.moves
+                    seen.add(key)
+                    counter += 1
+                    prio2 = priority(s2)
+                    heapq.heappush(frontier, (prio2[0], prio2[1], counter, s2))
+
+            expanded += len(batch)
+
+    raise SolverError("No winning path found")
+
+
 def summarize_state(state: State) -> None:
     total_cards = sum(len(state.stacks[i]) for i in range(BOARD_STACK_COUNT)) + len(state.stacks[SPARE_STACK_INDEX])
     spare_text = state.stacks[SPARE_STACK_INDEX][0].label() if state.stacks[SPARE_STACK_INDEX] else "empty"
@@ -474,7 +547,8 @@ def main() -> None:
     args = parse_args()
 
     try:
-        refresh_state_with_shape_comparer(args.shape_comparer, args.state)
+        if not args.no_refresh:
+            refresh_state_with_shape_comparer(args.shape_comparer, args.state)
         initial = load_initial_state(args.state)
     except (FileNotFoundError, SolverError, json.JSONDecodeError) as exc:
         print(f"Solver input error: {exc}")
@@ -482,8 +556,43 @@ def main() -> None:
 
     summarize_state(initial)
 
+    max_exp = max(1, int(args.max_expanded))
+
+    def _run_serial_search() -> List[Move]:
+        return find_winning_moves(initial, max_expanded=max_exp)
+
+    def _run_parallel_search() -> List[Move]:
+        return find_winning_moves_parallel(initial, max_expanded=max_exp, n_workers=args.workers)
+
     try:
-        moves = find_winning_moves(initial, max_expanded=max(1, int(args.max_expanded)))
+        if args.benchmark:
+            print(f"Benchmark mode: running both serial and parallel searches ({args.workers} workers)...")
+            t0 = time.perf_counter()
+            moves = _run_serial_search()
+            serial_elapsed = time.perf_counter() - t0
+
+            t0 = time.perf_counter()
+            moves = _run_parallel_search()
+            parallel_elapsed = time.perf_counter() - t0
+
+            speedup = serial_elapsed / parallel_elapsed if parallel_elapsed > 0 else float("inf")
+            print(
+                f"\nSearch timing comparison:\n"
+                f"  Serial:   {serial_elapsed * 1000:.1f} ms  ({len(moves)} moves found)\n"
+                f"  Parallel: {parallel_elapsed * 1000:.1f} ms  ({args.workers} workers)\n"
+                f"  Speedup:  {speedup:.2f}x"
+            )
+        elif args.parallel_search:
+            print(f"Running parallel search ({args.workers} workers)...")
+            t0 = time.perf_counter()
+            moves = _run_parallel_search()
+            elapsed = time.perf_counter() - t0
+            print(f"Parallel search done in {elapsed * 1000:.1f} ms")
+        else:
+            t0 = time.perf_counter()
+            moves = _run_serial_search()
+            elapsed = time.perf_counter() - t0
+            print(f"Search done in {elapsed * 1000:.1f} ms")
     except SolverError as exc:
         print(f"Solver failed: {exc}")
         raise SystemExit(3) from exc
