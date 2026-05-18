@@ -84,12 +84,12 @@ def parse_args() -> argparse.Namespace:
                    help="Seconds to hold mouse button during New Game click (default 0.03).")
     p.add_argument("--new-game-between", type=float, default=0.06,
                    help="Seconds between repeated New Game clicks (default 0.06).")
-    p.add_argument("--animation-start-delay", type=float, default=1.0,
-                   help="Seconds to wait before first shape_comparer attempt (default 1.0).")
+    p.add_argument("--animation-start-delay", type=float, default=0.3,
+                   help="Seconds to wait before first shape_comparer attempt (default 0.3).")
     p.add_argument("--animation-max-wait", type=float, default=8.0,
                    help="Max seconds to wait for a coherent vision state (default 8.0).")
-    p.add_argument("--sample-interval", type=float, default=0.05,
-                   help="Seconds between shape_comparer retries while waiting (default 0.05).")
+    p.add_argument("--sample-interval", type=float, default=0.01,
+                   help="Seconds between shape_comparer retries while waiting (default 0.01).")
     p.add_argument("--stable-frames", type=int, default=4,
                    help="Consecutive low-diff frames required for settle (default 4).")
     p.add_argument("--diff-threshold", type=float, default=1.2,
